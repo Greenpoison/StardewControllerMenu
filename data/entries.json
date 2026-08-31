@@ -1,0 +1,17 @@
+[
+    {
+        "ModName": "Example Mod",
+        "Actions": [
+            {
+                "Name": "Toggle Debug Overlay",
+                "Keybind": "LeftControl + G",
+                "Description": "Shows or hides the debug overlay."
+            },
+            {
+                "Name": "Reload Configs",
+                "Keybind": "F5",
+                "Description": "Reloads this mod's configuration without restarting the game."
+            }
+        ]
+    }
+]

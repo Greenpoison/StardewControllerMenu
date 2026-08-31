@@ -1,0 +1,10 @@
+{
+    "Name": "Controller Quick Menu",
+    "Author": "greenpoison",
+    "Version": "0.1.0",
+    "Description": "A single-button menu that lists every mod keybind so controller and Steam Deck players aren't limited by physical keys.",
+    "UniqueID": "greenpoison.ControllerQuickMenu",
+    "EntryDll": "StardewControllerMenu.dll",
+    "MinimumApiVersion": "4.0.0",
+    "UpdateKeys": []
+}

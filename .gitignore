@@ -1,0 +1,21 @@
+
+# Build output
+bin/
+obj/
+
+# SMAPI mod build config working files
+*.dll.mdb
+*.pdb
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local per-player config (players get one generated on first run)
+config.json
