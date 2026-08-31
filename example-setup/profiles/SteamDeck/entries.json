@@ -1,0 +1,219 @@
+[
+    {
+        "ModName": "Animal Husbandry Mod",
+        "Actions": [
+            { "Name": "Add Meat Cleaver to Inventory", "Keybind": "RightAlt + D1", "Description": "Gives you the Meat Cleaver tool used by this mod's animal slaughtering feature." },
+            { "Name": "Add Insemination Syringe to Inventory", "Keybind": "RightAlt + D2", "Description": "Gives you the Insemination Syringe tool for breeding animals." },
+            { "Name": "Add Feeding Basket to Inventory", "Keybind": "RightAlt + D3", "Description": "Gives you the Feeding Basket tool for hand-feeding animals." }
+        ]
+    },
+    {
+        "ModName": "Automate",
+        "Actions": [
+            { "Name": "Toggle Automate Overlay", "Keybind": "O", "Description": "Shows the connection lines between machines and chests that Automate is linking." }
+        ]
+    },
+    {
+        "ModName": "AutomaticGates",
+        "Actions": [
+            { "Name": "Toggle Gate Overlay", "Keybind": "NumPad9", "Description": "Shows which gates are set to open/close automatically." },
+            { "Name": "Hide Overlay While Scrolling", "Keybind": "NumPad0", "Description": "Hold to temporarily hide the gate overlay, e.g. while scrolling the toolbar." },
+            { "Name": "Mark Gate as Ignored", "Keybind": "MouseLeft", "Description": "Click a gate (with the overlay open) to exclude it from automatic behavior." },
+            { "Name": "Un-ignore Gate", "Keybind": "MouseRight", "Description": "Click an ignored gate to restore its automatic behavior." },
+            { "Name": "Increase Auto-Close Delay", "Keybind": "Add", "Description": "Numpad +. Increases how long a gate waits before auto-closing." },
+            { "Name": "Decrease Auto-Close Delay", "Keybind": "Subtract", "Description": "Numpad -. Decreases how long a gate waits before auto-closing." }
+        ]
+    },
+    {
+        "ModName": "Better Beehouses",
+        "Actions": [
+            { "Name": "Toggle Debug Overlay", "Keybind": "F9", "Description": "Shows beehouse range and debug info." }
+        ]
+    },
+    {
+        "ModName": "Better Crafting",
+        "Actions": [
+            { "Name": "Suppress Better Crafting Menu", "Keybind": "LeftShift", "Description": "Hold while opening the crafting menu to get the vanilla menu instead." },
+            { "Name": "Crafting Modifier", "Keybind": "LeftShift, RightTrigger", "Description": "Hold to enable a secondary action (e.g. bulk craft) on click." },
+            { "Name": "Favorite Recipe", "Keybind": "F, ControllerBack", "Description": "Marks the highlighted recipe as a favorite for quick access." },
+            { "Name": "Bulk Craft", "Keybind": "RightAlt + B", "Description": "Crafts the maximum possible quantity of the selected recipe." },
+            { "Name": "Search Recipes", "Keybind": "F3", "Description": "Opens the recipe search box." }
+        ]
+    },
+    {
+        "ModName": "CJB Cheats Menu",
+        "Actions": [
+            { "Name": "Open Cheats Menu", "Keybind": "F2", "Description": "Opens the CJB Cheats Menu." },
+            { "Name": "Reload Cheats Config", "Keybind": "RightAlt + F2", "Description": "Reloads the cheats configuration from disk." },
+            { "Name": "Freeze Time", "Keybind": "RightAlt + F3", "Description": "Toggles freezing the in-game clock." },
+            { "Name": "Grow Nearby Tree", "Keybind": "NumPad1", "Description": "Instantly grows the tree under your cursor." },
+            { "Name": "Grow Nearby Crops", "Keybind": "NumPad2", "Description": "Instantly grows the crops under your cursor." }
+        ]
+    },
+    {
+        "ModName": "CapeStardewCode",
+        "Actions": [
+            { "Name": "Toggle Orb of Tides", "Keybind": "LeftControl + LeftAlt + O", "Description": "Toggles the Orb of the Tides feature for the Cape Stardew content pack." },
+            { "Name": "Toggle Orb of Tides (Controller)", "Keybind": "LeftShoulder + RightShoulder", "Description": "Controller-bound duplicate of the Orb of the Tides toggle. NOTE: this collides with this mod's own default open-menu button - see the example-setup README." }
+        ]
+    },
+    {
+        "ModName": "Chests Anywhere",
+        "Actions": [
+            { "Name": "Open Chests Anywhere", "Keybind": "B", "Description": "Opens the remote chest browser." },
+            { "Name": "Previous Chest", "Keybind": "Left, LeftShoulder", "Description": "Selects the previous chest in the list." },
+            { "Name": "Next Chest", "Keybind": "Right, RightShoulder", "Description": "Selects the next chest in the list." },
+            { "Name": "Previous Category", "Keybind": "Up, LeftTrigger", "Description": "Switches to the previous chest category tab." },
+            { "Name": "Next Category", "Keybind": "Down, RightTrigger", "Description": "Switches to the next chest category tab." },
+            { "Name": "Edit Chest", "Keybind": "RightAlt + E", "Description": "Opens options to rename or categorize the selected chest." },
+            { "Name": "Sort Chest Items", "Keybind": "RightAlt + S", "Description": "Sorts the items in the selected chest." },
+            { "Name": "Scroll Chests with Mouse Wheel", "Keybind": "LeftControl", "Description": "Hold and scroll to cycle through chests." },
+            { "Name": "Scroll Categories with Mouse Wheel", "Keybind": "LeftAlt", "Description": "Hold and scroll to cycle through categories." },
+            { "Name": "Search Chests", "Keybind": "LeftControl + F, LeftStick", "Description": "Opens the chest search box." },
+            { "Name": "Preview Chest in Search", "Keybind": "LeftTrigger", "Description": "Hold while browsing search results to preview a chest's contents." }
+        ]
+    },
+    {
+        "ModName": "Content Patcher",
+        "Actions": [
+            { "Name": "Toggle CP Debug Overlay", "Keybind": "F4", "Description": "Shows which content patches are applied to the tile under your cursor." },
+            { "Name": "Debug: Previous Texture", "Keybind": "LeftControl", "Description": "While the debug overlay is open, hold to cycle to the previous patched texture." },
+            { "Name": "Debug: Next Texture", "Keybind": "RightControl", "Description": "While the debug overlay is open, hold to cycle to the next patched texture." }
+        ]
+    },
+    {
+        "ModName": "Fashion Sense",
+        "Actions": [
+            { "Name": "Open Fashion Sense Menu", "Keybind": "RightAlt + F", "Description": "Opens the outfit/accessory quick menu." }
+        ]
+    },
+    {
+        "ModName": "Fast Animations",
+        "Actions": [
+            { "Name": "Pause Fast Animations", "Keybind": "RightAlt + P", "Description": "Temporarily disables the animation speed-up." }
+        ]
+    },
+    {
+        "ModName": "Generic Mod Config Menu",
+        "Actions": [
+            { "Name": "Open Mod Config Menu", "Keybind": "LeftShoulder + F2", "Description": "Opens the in-game settings menu for any GMCM-compatible mod." }
+        ]
+    },
+    {
+        "ModName": "Happy Home Designer",
+        "Actions": [
+            { "Name": "Give Item Modifier", "Keybind": "LeftShift", "Description": "Hold while placing an item to give it instead of spending it." },
+            { "Name": "Favorite Item Modifier", "Keybind": "LeftControl", "Description": "Hold to mark the selected furniture/item as a favorite." },
+            { "Name": "Toggle Happy Home Designer", "Keybind": "RightAlt + H", "Description": "Turns the furniture placement helper on or off." },
+            { "Name": "Open Design Menu", "Keybind": "RightAlt + G", "Description": "Opens the Happy Home Designer menu." },
+            { "Name": "Quick Delete Item", "Keybind": "Delete", "Description": "Deletes the selected placed item." }
+        ]
+    },
+    {
+        "ModName": "Lookup Anything",
+        "Actions": [
+            { "Name": "Look Up Anything", "Keybind": "F1", "Description": "Shows detailed info about whatever's under your cursor." },
+            { "Name": "Search Lookup Anything", "Keybind": "LeftShift + F1", "Description": "Opens the lookup search box." },
+            { "Name": "Scroll Lookup Up", "Keybind": "Up", "Description": "Scrolls the lookup popup up." },
+            { "Name": "Scroll Lookup Down", "Keybind": "Down", "Description": "Scrolls the lookup popup down." },
+            { "Name": "Lookup Page Up", "Keybind": "PageUp", "Description": "Jumps up a page in the lookup popup." },
+            { "Name": "Lookup Page Down", "Keybind": "PageDown", "Description": "Jumps down a page in the lookup popup." },
+            { "Name": "Toggle Lookup Debug Info", "Keybind": "RightAlt + F1", "Description": "Shows extra debug details in lookup results." }
+        ]
+    },
+    {
+        "ModName": "Machine Control Panel",
+        "Actions": [
+            { "Name": "Open Machine Control Panel", "Keybind": "Q", "Description": "Opens the control panel for the machine under your cursor." },
+            { "Name": "Select Machines", "Keybind": "LeftControl + Q", "Description": "Enters machine multi-select mode." },
+            { "Name": "Toggle Machine Overlay", "Keybind": "RightAlt + Q", "Description": "Shows an overlay with machine status icons." }
+        ]
+    },
+    {
+        "ModName": "NPC Map Locations",
+        "Actions": [
+            { "Name": "Open Full Map", "Keybind": "Tab", "Description": "Opens the full-screen map showing NPC locations." },
+            { "Name": "Toggle Minimap", "Keybind": "OemPipe", "Description": "Shows or hides the on-screen minimap." },
+            { "Name": "Show Map Tooltip", "Keybind": "Space", "Description": "Hold to show name tooltips on the map." }
+        ]
+    },
+    {
+        "ModName": "NatureIntheValley",
+        "Actions": [
+            { "Name": "Open Nature Encyclopedia", "Keybind": "I + LeftShift", "Description": "Opens the Nature in the Valley encyclopedia menu." }
+        ]
+    },
+    {
+        "ModName": "Questable Tractor Mod",
+        "Actions": [
+            { "Name": "Expand Tractor Tool Radius", "Keybind": "Add", "Description": "Numpad +. Increases the tractor attachment's area of effect." },
+            { "Name": "Shrink Tractor Tool Radius", "Keybind": "Subtract", "Description": "Numpad -. Decreases the tractor attachment's area of effect." }
+        ]
+    },
+    {
+        "ModName": "Simple Crop Label",
+        "Actions": [
+            { "Name": "Toggle Crop Labels", "Keybind": "RightAlt + C", "Description": "Shows or hides labels over crops in the field." }
+        ]
+    },
+    {
+        "ModName": "SpaceCore",
+        "Actions": [
+            { "Name": "Social Interaction Modifier", "Keybind": "LeftControl", "Description": "Hold while interacting with an NPC to trigger SpaceCore's extra social interactions." }
+        ]
+    },
+    {
+        "ModName": "Stardew Aquarium Code",
+        "Actions": [
+            { "Name": "Check Aquarium Donations", "Keybind": "RightAlt + D", "Description": "Shows which fish you still need to donate to the aquarium." }
+        ]
+    },
+    {
+        "ModName": "StardewUI",
+        "Actions": [
+            { "Name": "Toggle StardewUI Tracing", "Keybind": "LeftControl + LeftShift + F6", "Description": "Developer diagnostic: toggles StardewUI's performance tracing overlay." }
+        ]
+    },
+    {
+        "ModName": "TimeSpeed",
+        "Actions": [
+            { "Name": "Freeze Time", "Keybind": "N", "Description": "Pauses the in-game clock." },
+            { "Name": "Slow Down Time", "Keybind": "RightAlt + OemPlus", "Description": "Makes in-game minutes pass more slowly." },
+            { "Name": "Speed Up Time", "Keybind": "RightAlt + OemMinus", "Description": "Makes in-game minutes pass more quickly." },
+            { "Name": "Reload TimeSpeed Config", "Keybind": "RightAlt + R", "Description": "Reloads TimeSpeed's settings from disk." }
+        ]
+    },
+    {
+        "ModName": "To-Dew",
+        "Actions": [
+            { "Name": "Open To-Dew List", "Keybind": "L", "Description": "Opens the daily to-do checklist." },
+            { "Name": "Open To-Dew List (Alt)", "Keybind": "RightAlt + L", "Description": "Alternate binding that opens the same to-do checklist." },
+            { "Name": "Close To-Dew List", "Keybind": "ControllerBack", "Description": "Closes the to-do checklist using a controller button." }
+        ]
+    },
+    {
+        "ModName": "Tractor Mod",
+        "Actions": [
+            { "Name": "Summon Tractor", "Keybind": "Back", "Description": "Press Backspace to call your tractor to your location." },
+            { "Name": "Dismiss Tractor", "Keybind": "Back", "Description": "Press Backspace while riding to send the tractor back to its garage." }
+        ]
+    },
+    {
+        "ModName": "TrinketTinker",
+        "Actions": [
+            { "Name": "Trinket Interact", "Keybind": "LeftAlt + MouseRight, LeftStick + ControllerA", "Description": "Interacts with the active trinket's special ability." },
+            { "Name": "Open Trinket Inventory", "Keybind": "RightAlt + OemPeriod, LeftStick + ControllerX", "Description": "Opens the trinket loadout/inventory screen." },
+            { "Name": "Next Trinket Page", "Keybind": "PageUp, RightShoulder", "Description": "Shows the next page of trinkets." },
+            { "Name": "Previous Trinket Page", "Keybind": "PageDown, LeftShoulder", "Description": "Shows the previous page of trinkets." }
+        ]
+    },
+    {
+        "ModName": "UI Info Suite 2",
+        "Actions": [
+            { "Name": "Open Calendar", "Keybind": "C", "Description": "Opens the calendar from anywhere." },
+            { "Name": "Open Quest Board", "Keybind": "H", "Description": "Opens the quest board from anywhere." },
+            { "Name": "Show Single Range", "Keybind": "LeftControl", "Description": "Hold to show the range of the item or building under your cursor." },
+            { "Name": "Show All Ranges", "Keybind": "LeftControl + LeftAlt", "Description": "Hold to show the ranges of every sprinkler/scarecrow/etc. on the farm." }
+        ]
+    }
+]

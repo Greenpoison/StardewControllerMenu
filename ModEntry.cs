@@ -14,6 +14,7 @@ namespace StardewControllerMenu
         {
             this.Config = helper.ReadConfig<ModConfig>();
             this.Presets = new PresetManager(helper, this.Monitor);
+            KeySender.Init(this.Monitor);
 
             helper.Events.GameLoop.GameLaunched += this.OnGameLaunched;
             helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
@@ -21,7 +22,7 @@ namespace StardewControllerMenu
 
         private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
         {
-            this.Presets.LoadAll();
+            this.Presets.LoadProfile(this.Config.ActiveProfile);
         }
 
         private void OnButtonsChanged(object sender, ButtonsChangedEventArgs e)

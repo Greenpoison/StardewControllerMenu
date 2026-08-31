@@ -1,0 +1,11 @@
+{
+    "Name": "Farming Essentials",
+    "IncludedModNames": [
+        "Automate",
+        "Tractor Mod",
+        "Chests Anywhere",
+        "CJB Cheats Menu",
+        "Machine Control Panel",
+        "AutomaticGates"
+    ]
+}
