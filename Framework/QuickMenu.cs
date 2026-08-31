@@ -16,10 +16,11 @@ namespace StardewControllerMenu.Framework
     /// via <see cref="PresetManagerMenu"/>); LB/RB cycle presets and LT/RT cycle profiles without
     /// leaving this screen.
     ///
-    /// D-pad/left-stick navigation is wired explicitly here rather than relying on the base class:
-    /// IClickableMenu's own receiveGamePadButton and gamePadButtonHeld are both no-ops by default
-    /// (confirmed by decompiling the game) - every vanilla menu with snap navigation wires it itself
-    /// by calling applyMovementKey, so this does the same.
+    /// D-pad/left-stick navigation is deliberately NOT wired up in receiveGamePadButton: the game
+    /// already translates it into a synthetic keypress that reaches receiveKeyPress (confirmed by
+    /// decompiling Game1's input loop), which this class's receiveKeyPress falls through to the base
+    /// class for. Handling it a second time in receiveGamePadButton made the cursor skip every other
+    /// row - found the hard way in PresetManagerMenu, where it was obvious with only three rows.
     /// </summary>
     public class QuickMenu : IClickableMenu
     {
@@ -31,15 +32,12 @@ namespace StardewControllerMenu.Framework
         private readonly List<ClickableComponent> RowComponents = new();
 
         private int ScrollOffset;
-        private float DirectionRepeatCooldownMs;
 
         private const int RowHeight = 64;
         private const int TitleTop = 24;
         private const int StatusGap = 4;
         private const int ContentGap = 12;
         private const int VisibleRows = 6;
-        private const int InitialRepeatDelayMs = 300;
-        private const int RepeatIntervalMs = 90;
 
         public QuickMenu(IModHelper helper, ModConfig config, PresetManager presets)
             : base(Game1.uiViewport.Width / 2 - 400, Game1.uiViewport.Height / 2 - 300, 800, 600, showUpperRightCloseButton: true)
@@ -135,27 +133,11 @@ namespace StardewControllerMenu.Framework
             }
         }
 
-        private static int? DirectionOf(Buttons button)
-        {
-            return button switch
-            {
-                Buttons.DPadUp or Buttons.LeftThumbstickUp => 0,
-                Buttons.DPadRight or Buttons.LeftThumbstickRight => 1,
-                Buttons.DPadDown or Buttons.LeftThumbstickDown => 2,
-                Buttons.DPadLeft or Buttons.LeftThumbstickLeft => 3,
-                _ => null
-            };
-        }
-
         public override void receiveGamePadButton(Buttons button)
         {
-            if (DirectionOf(button) is int direction)
-            {
-                this.Move(direction);
-                this.DirectionRepeatCooldownMs = InitialRepeatDelayMs;
-                return;
-            }
-
+            // D-pad/left-stick navigation is NOT handled here - the game already translates it into
+            // a synthetic keypress for menu navigation (see receiveKeyPress's remarks), and handling
+            // it again here as well made the cursor skip every other row. Trust that single path.
             switch (button)
             {
                 case Buttons.A:
@@ -189,28 +171,6 @@ namespace StardewControllerMenu.Framework
             }
 
             base.receiveGamePadButton(button);
-        }
-
-        public override void gamePadButtonHeld(Buttons b)
-        {
-            if (DirectionOf(b) is int direction)
-            {
-                this.DirectionRepeatCooldownMs -= (float)Game1.currentGameTime.ElapsedGameTime.TotalMilliseconds;
-                if (this.DirectionRepeatCooldownMs <= 0)
-                {
-                    this.Move(direction);
-                    this.DirectionRepeatCooldownMs = RepeatIntervalMs;
-                }
-                return;
-            }
-
-            base.gamePadButtonHeld(b);
-        }
-
-        private void Move(int direction)
-        {
-            this.applyMovementKey(direction);
-            this.UpdateRowBounds();
         }
 
         public override void receiveKeyPress(Keys key)

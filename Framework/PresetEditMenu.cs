@@ -23,13 +23,10 @@ namespace StardewControllerMenu.Framework
         private readonly HashSet<string> Selected;
 
         private int ScrollOffset;
-        private float DirectionRepeatCooldownMs;
 
         private const int RowHeight = 64;
         private const int ContentTop = 96;
         private const int VisibleRows = 7;
-        private const int InitialRepeatDelayMs = 300;
-        private const int RepeatIntervalMs = 90;
 
         public PresetEditMenu(IModHelper helper, ModConfig config, PresetManager presets, string presetName, IEnumerable<string> initiallyIncludedModNames)
             : base(Game1.uiViewport.Width / 2 - 400, Game1.uiViewport.Height / 2 - 300, 800, 600, showUpperRightCloseButton: true)
@@ -98,27 +95,9 @@ namespace StardewControllerMenu.Framework
             }
         }
 
-        private static int? DirectionOf(Buttons button)
-        {
-            return button switch
-            {
-                Buttons.DPadUp or Buttons.LeftThumbstickUp => 0,
-                Buttons.DPadRight or Buttons.LeftThumbstickRight => 1,
-                Buttons.DPadDown or Buttons.LeftThumbstickDown => 2,
-                Buttons.DPadLeft or Buttons.LeftThumbstickLeft => 3,
-                _ => null
-            };
-        }
-
         public override void receiveGamePadButton(Buttons button)
         {
-            if (DirectionOf(button) is int direction)
-            {
-                this.Move(direction);
-                this.DirectionRepeatCooldownMs = InitialRepeatDelayMs;
-                return;
-            }
-
+            // D-pad/left-stick navigation is NOT handled here - see QuickMenu's class remarks for why.
             switch (button)
             {
                 case Buttons.A:
@@ -136,28 +115,6 @@ namespace StardewControllerMenu.Framework
             }
 
             base.receiveGamePadButton(button);
-        }
-
-        public override void gamePadButtonHeld(Buttons b)
-        {
-            if (DirectionOf(b) is int direction)
-            {
-                this.DirectionRepeatCooldownMs -= (float)Game1.currentGameTime.ElapsedGameTime.TotalMilliseconds;
-                if (this.DirectionRepeatCooldownMs <= 0)
-                {
-                    this.Move(direction);
-                    this.DirectionRepeatCooldownMs = RepeatIntervalMs;
-                }
-                return;
-            }
-
-            base.gamePadButtonHeld(b);
-        }
-
-        private void Move(int direction)
-        {
-            this.applyMovementKey(direction);
-            this.UpdateRowBounds();
         }
 
         public override void receiveKeyPress(Keys key)

@@ -81,18 +81,6 @@ namespace StardewControllerMenu.Framework
             }
         }
 
-        private static int? DirectionOf(Buttons button)
-        {
-            return button switch
-            {
-                Buttons.DPadUp or Buttons.LeftThumbstickUp => 0,
-                Buttons.DPadRight or Buttons.LeftThumbstickRight => 1,
-                Buttons.DPadDown or Buttons.LeftThumbstickDown => 2,
-                Buttons.DPadLeft or Buttons.LeftThumbstickLeft => 3,
-                _ => null
-            };
-        }
-
         public override void receiveGamePadButton(Buttons button)
         {
             if (this.PendingDeleteIndex is int pendingIndex)
@@ -104,12 +92,7 @@ namespace StardewControllerMenu.Framework
                 return;
             }
 
-            if (DirectionOf(button) is int direction)
-            {
-                this.applyMovementKey(direction);
-                return;
-            }
-
+            // D-pad/left-stick navigation is NOT handled here - see QuickMenu's class remarks for why.
             switch (button)
             {
                 case Buttons.A:
