@@ -91,6 +91,27 @@ namespace StardewControllerMenu.Framework
                 return;
             }
 
+            // The textbox has focus for as long as this prompt is open, which otherwise blocks the
+            // game's own D-pad-to-navigation translation entirely (see receiveKeyPress) - so a
+            // direction press has to explicitly hand focus back first, exactly like the game's own
+            // NamingMenu does for the same reason.
+            if (this.TextBox.Selected)
+            {
+                switch (button)
+                {
+                    case Buttons.DPadUp:
+                    case Buttons.DPadDown:
+                    case Buttons.DPadLeft:
+                    case Buttons.DPadRight:
+                    case Buttons.LeftThumbstickUp:
+                    case Buttons.LeftThumbstickDown:
+                    case Buttons.LeftThumbstickLeft:
+                    case Buttons.LeftThumbstickRight:
+                        this.TextBox.Selected = false;
+                        return;
+                }
+            }
+
             if (button == Buttons.A && !this.TextBox.Selected)
             {
                 if (this.currentlySnappedComponent == this.SaveButton)

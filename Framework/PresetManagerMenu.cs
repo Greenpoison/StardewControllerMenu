@@ -237,7 +237,7 @@ namespace StardewControllerMenu.Framework
                 this.Helper.WriteConfig(this.Config);
             }
 
-            Game1.playSound("trashcan");
+            Game1.playSound("bigDeSelect");
             this.ReturnToSelf();
         }
 
@@ -267,8 +267,11 @@ namespace StardewControllerMenu.Framework
             for (int i = 0; i < this.Rows.Count; i++)
             {
                 ClickableComponent row = this.RowComponents[i];
+                bool isPendingDelete = this.PendingDeleteIndex == i;
                 bool isSnapped = this.currentlySnappedComponent == row;
-                if (isSnapped)
+                if (isPendingDelete)
+                    b.Draw(Game1.staminaRect, row.bounds, Color.Red * 0.5f);
+                else if (isSnapped)
                     b.Draw(Game1.staminaRect, row.bounds, Color.Wheat * 0.6f);
 
                 string label = TextLayout.FitToWidth(this.Rows[i], this.width - 64 - 16);
@@ -276,10 +279,11 @@ namespace StardewControllerMenu.Framework
             }
 
             string hint = this.PendingDeleteIndex is int pendingIndex
-                ? $"Delete '{this.Rows[pendingIndex]}'? A/click = confirm. Anything else = cancel."
+                ? $"Delete '{this.Rows[pendingIndex]}'? Press A (or click) to confirm - any other input cancels."
                 : "A/click: edit mods   Y: duplicate   X/right-click: delete   B: back";
             hint = TextLayout.FitToWidth(hint, this.width - 64);
-            Utility.drawTextWithShadow(b, hint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Game1.textColor);
+            Color hintColor = this.PendingDeleteIndex != null ? Color.Red : Game1.textColor;
+            Utility.drawTextWithShadow(b, hint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), hintColor);
 
             this.drawMouse(b);
         }
