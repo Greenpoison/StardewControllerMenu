@@ -19,14 +19,14 @@ namespace StardewControllerMenu.Framework
     /// constructor), it means actually deleting the just-created stub, since otherwise "discards
     /// changes" would be a lie - the empty (or duplicated) preset would persist on disk even after
     /// cancelling out of creating it.
-    /// X requests deleting the whole preset being edited (not a single action) - a separate
-    /// confirmation step follows, using a different input than X on purpose, so a habitual repeat
-    /// press can't delete something by accident. This is a second way to delete a preset, alongside
-    /// the one in PresetManagerMenu, added because a player found it easier to reach from here.
-    /// Deletion is also locked by default (<see cref="DeletionEnabled"/>) - RT unlocks it for the
-    /// rest of this visit to the screen, as an extra line of defence on top of the request/confirm
-    /// split, since a habitual press of a delete-request button is still possible even when it takes
-    /// a second input to confirm.
+    ///
+    /// Deleting the whole preset being edited (not a single action) is locked by default
+    /// (<see cref="DeletionEnabled"/>) - RT/L unlocks it for the rest of this visit. Once unlocked,
+    /// the delete triggers (X/LB/RB/LT/right-click, and A/Enter/click too) delete immediately with no
+    /// further confirmation - the unlock step itself is the safety gate, by design: an earlier
+    /// request-then-confirm split on top of the lock turned out to be one safety mechanism too many
+    /// once a player found even the confirm step unreliable on their setup, so it was removed in
+    /// favor of this simpler two-state design (locked = safe, unlocked = one press deletes).
     /// </summary>
     public class PresetEditMenu : IClickableMenu
     {
@@ -41,7 +41,6 @@ namespace StardewControllerMenu.Framework
         private readonly HashSet<string> Selected;
 
         private bool DeletionEnabled;
-        private bool PendingDelete;
         private int ScrollOffset;
 
         private const int RowHeight = 64;
@@ -113,9 +112,9 @@ namespace StardewControllerMenu.Framework
         {
             base.receiveLeftClick(x, y, playSound);
 
-            if (this.PendingDelete)
+            if (this.DeletionEnabled)
             {
-                this.ConfirmDelete();
+                this.DeleteNow();
                 return;
             }
 
@@ -129,13 +128,11 @@ namespace StardewControllerMenu.Framework
             }
         }
 
-        /// <summary>Right-click requests deleting the whole preset, mirroring gamepad X. Unlike PresetManagerMenu's row-scoped delete, this isn't tied to a specific row - the whole screen is already scoped to one preset - so it fires regardless of where the click lands.</summary>
+        /// <summary>Right-click deletes immediately once unlocked, mirroring gamepad X. Unlike PresetManagerMenu's row-scoped delete, this isn't tied to a specific row - the whole screen is already scoped to one preset - so it fires regardless of where the click lands. While locked, it's a no-op (there's no "request" state left to cancel out of).</summary>
         public override void receiveRightClick(int x, int y, bool playSound = true)
         {
-            if (this.PendingDelete)
-                this.CancelPendingDelete();
-            else
-                this.RequestDelete();
+            if (this.DeletionEnabled)
+                this.DeleteNow();
         }
 
         private static int? DirectionOf(Buttons button)
@@ -164,15 +161,6 @@ namespace StardewControllerMenu.Framework
 
         public override void receiveGamePadButton(Buttons button)
         {
-            if (this.PendingDelete)
-            {
-                if (button == Buttons.A || button == Buttons.RightTrigger)
-                    this.ConfirmDelete();
-                else
-                    this.CancelPendingDelete();
-                return;
-            }
-
             if (DirectionOf(button) is int direction)
             {
                 this.Move(direction);
@@ -182,7 +170,9 @@ namespace StardewControllerMenu.Framework
             switch (button)
             {
                 case Buttons.A:
-                    if (this.currentlySnappedComponent != null)
+                    if (this.DeletionEnabled)
+                        this.DeleteNow();
+                    else if (this.currentlySnappedComponent != null)
                         this.ToggleRow(this.currentlySnappedComponent.myID);
                     return;
 
@@ -191,16 +181,19 @@ namespace StardewControllerMenu.Framework
                     return;
 
                 // X is the "natural" button for this, but A/Y/B have all been confirmed working
-                // for this player while X and delete specifically have not - possibly a button
-                // that a Steam Input binding intercepts before it reaches the game at all. LB/RB
-                // and LT aren't used for anything else in this menu (this mod no longer cycles
-                // profiles from in-game, freeing the triggers up), so they're offered as
-                // alternative triggers rather than betting everything on X being fixable.
+                // for this player while X specifically has not - possibly a button that a Steam
+                // Input binding intercepts before it reaches the game at all. LB/RB/LT aren't used
+                // for anything else in this menu (this mod no longer cycles profiles in-game,
+                // freeing the triggers up), so they're offered as alternatives rather than betting
+                // everything on X being fixable.
                 case Buttons.X:
                 case Buttons.LeftShoulder:
                 case Buttons.RightShoulder:
                 case Buttons.LeftTrigger:
-                    this.RequestDelete();
+                    if (this.DeletionEnabled)
+                        this.DeleteNow();
+                    else
+                        Game1.showRedMessage("Deletion is locked - press RT (or L) to unlock it first.");
                     return;
 
                 case Buttons.RightTrigger:
@@ -217,15 +210,6 @@ namespace StardewControllerMenu.Framework
 
         public override void receiveKeyPress(Keys key)
         {
-            if (this.PendingDelete)
-            {
-                if (key == Keys.Enter)
-                    this.ConfirmDelete();
-                else
-                    this.CancelPendingDelete();
-                return;
-            }
-
             if (DirectionOf(key) is int direction)
             {
                 this.Move(direction);
@@ -236,7 +220,9 @@ namespace StardewControllerMenu.Framework
             {
                 // Enter mirrors A - see the same fallback in QuickMenu.receiveKeyPress for why.
                 case Keys.Enter:
-                    if (this.currentlySnappedComponent != null)
+                    if (this.DeletionEnabled)
+                        this.DeleteNow();
+                    else if (this.currentlySnappedComponent != null)
                         this.ToggleRow(this.currentlySnappedComponent.myID);
                     return;
 
@@ -247,7 +233,10 @@ namespace StardewControllerMenu.Framework
                 case Keys.Delete:
                 case Keys.Back:
                 case Keys.OemMinus:
-                    this.RequestDelete();
+                    if (this.DeletionEnabled)
+                        this.DeleteNow();
+                    else
+                        Game1.showRedMessage("Deletion is locked - press L (or RT) to unlock it first.");
                     return;
 
                 case Keys.L:
@@ -326,26 +315,14 @@ namespace StardewControllerMenu.Framework
             Game1.activeClickableMenu = new QuickMenu(this.Helper, this.Config, this.Presets);
         }
 
-        private void RequestDelete()
-        {
-            if (!this.DeletionEnabled)
-            {
-                Game1.showRedMessage("Deletion is locked - press RT (or L) to unlock it first.");
-                Game1.playSound("cancel");
-                return;
-            }
-
-            this.PendingDelete = true;
-            Game1.playSound("cancel");
-        }
-
         private void ToggleDeletionLock()
         {
             this.DeletionEnabled = !this.DeletionEnabled;
             Game1.playSound(this.DeletionEnabled ? "coin" : "cancel");
         }
 
-        private void ConfirmDelete()
+        /// <summary>Deletes the preset being edited with no further confirmation - only reachable once <see cref="DeletionEnabled"/> is true, which is itself the deliberate, separate safety gate.</summary>
+        private void DeleteNow()
         {
             this.Presets.DeletePreset(this.PresetName);
 
@@ -359,25 +336,19 @@ namespace StardewControllerMenu.Framework
             Game1.activeClickableMenu = new QuickMenu(this.Helper, this.Config, this.Presets);
         }
 
-        private void CancelPendingDelete()
-        {
-            this.PendingDelete = false;
-            Game1.playSound("smallSelect");
-        }
-
         public override void draw(SpriteBatch b)
         {
             this.UpdateRowBounds();
 
             b.Draw(Game1.fadeToBlackRect, Game1.graphics.GraphicsDevice.Viewport.Bounds, Color.Black * 0.5f);
             drawTextureBox(b, this.xPositionOnScreen, this.yPositionOnScreen, this.width, this.height, Color.White);
-            if (this.PendingDelete)
-                b.Draw(Game1.staminaRect, new Rectangle(this.xPositionOnScreen, this.yPositionOnScreen, this.width, this.height), Color.Red * 0.25f);
+            if (this.DeletionEnabled)
+                b.Draw(Game1.staminaRect, new Rectangle(this.xPositionOnScreen, this.yPositionOnScreen, this.width, this.height), Color.Red * 0.15f);
 
             const string title = "Edit Preset";
             SpriteText.drawString(b, title, this.xPositionOnScreen + 32, this.yPositionOnScreen + 24);
 
-            string lockLabel = this.DeletionEnabled ? "[Deletion: UNLOCKED]" : "[Deletion: locked]";
+            string lockLabel = this.DeletionEnabled ? "[Deletion: UNLOCKED - next press deletes!]" : "[Deletion: locked]";
             string status = TextLayout.FitToWidth($"Editing: {this.PresetName}   ({this.Selected.Count} action(s) selected)   {lockLabel}", this.width - 64);
             int titleHeight = SpriteText.getHeightOfString(title, 9999);
             int statusY = this.yPositionOnScreen + 24 + titleHeight + 4;
@@ -407,21 +378,23 @@ namespace StardewControllerMenu.Framework
                 Utility.drawTextWithShadow(b, label, Game1.smallFont, new Vector2(row.bounds.X + 8, row.bounds.Y + 8), Game1.textColor);
             }
 
-            if (this.PendingDelete)
+            string cancelHint = this.IsNewPreset ? "B: cancel (deletes this new preset)" : "B: cancel (discards changes)";
+            string hintLine1, hintLine2;
+            Color hintLine2Color;
+            if (this.DeletionEnabled)
             {
-                string confirmHint = TextLayout.FitToWidth($"A/RT/Enter/click deletes the whole preset \"{this.PresetName}\" - anything else cancels", this.width - 64);
-                Utility.drawTextWithShadow(b, confirmHint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Color.Red);
+                hintLine1 = TextLayout.FitToWidth($"A/Enter/click/X/LB/RB/LT deletes \"{this.PresetName}\" IMMEDIATELY, no further confirmation", this.width - 64);
+                hintLine2 = TextLayout.FitToWidth($"RT/L: lock deletion again (safer)   Y: save   {cancelHint}", this.width - 64);
+                hintLine2Color = Game1.textColor;
             }
             else
             {
-                string cancelHint = this.IsNewPreset ? "B: cancel (deletes this new preset)" : "B: cancel (discards changes)";
-                string hintLine1 = TextLayout.FitToWidth($"A/Enter: toggle   Y: save   {cancelHint}", this.width - 64);
-                string hintLine2 = this.DeletionEnabled
-                    ? TextLayout.FitToWidth("RT/L: lock deletion again   X/LB/RB/LT: delete this preset", this.width - 64)
-                    : TextLayout.FitToWidth("RT/L: unlock deletion (locked by default, as an extra safeguard)", this.width - 64);
-                Utility.drawTextWithShadow(b, hintLine1, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 58), Game1.textColor);
-                Utility.drawTextWithShadow(b, hintLine2, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 36), this.DeletionEnabled ? Color.OrangeRed : Game1.textColor);
+                hintLine1 = TextLayout.FitToWidth($"A/Enter: toggle action   Y: save   {cancelHint}", this.width - 64);
+                hintLine2 = TextLayout.FitToWidth("RT/L: unlock deletion of this whole preset (locked by default)", this.width - 64);
+                hintLine2Color = Game1.textColor;
             }
+            Utility.drawTextWithShadow(b, hintLine1, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 58), this.DeletionEnabled ? Color.Red : Game1.textColor);
+            Utility.drawTextWithShadow(b, hintLine2, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 36), hintLine2Color);
             this.drawMouse(b);
         }
     }
