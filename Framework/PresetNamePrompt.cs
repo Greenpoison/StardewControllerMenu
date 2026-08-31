@@ -51,7 +51,8 @@ namespace StardewControllerMenu.Framework
             this.TextBoxComponent = new ClickableComponent(new Rectangle(this.TextBox.X, this.TextBox.Y, this.TextBox.Width, this.TextBox.Height), "Name")
             {
                 myID = 0,
-                downNeighborID = 1
+                downNeighborID = 1,
+                rightNeighborID = 1 // same target as Down - Save sits directly below/right of the name field, and either direction should reach it
             };
             this.SaveButton = new ClickableComponent(new Rectangle(this.TextBox.X, this.TextBox.Y + 64, 150, 56), "Save")
             {

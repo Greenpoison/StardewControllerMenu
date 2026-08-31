@@ -10,13 +10,23 @@ using StardewValley.Menus;
 
 namespace StardewControllerMenu.Framework
 {
-    /// <summary>Lists every individual action across every mod in the active profile with a checkbox, for building one named preset. A toggles an action in/out. Y saves back to that preset name and returns to the quick menu with it active. B discards any changes made this visit and returns without saving.</summary>
+    /// <summary>
+    /// Lists every individual action across every mod in the active profile with a checkbox, for
+    /// building one named preset. A toggles an action in/out. Y saves back to that preset name and
+    /// returns to the quick menu with it active. B discards any changes made this visit - for a
+    /// preset that already existed before this screen opened, that means leaving it as it was; for
+    /// one just created via "+ New Preset" or Duplicate (<paramref name="isNewPreset"/> in the
+    /// constructor), it means actually deleting the just-created stub, since otherwise "discards
+    /// changes" would be a lie - the empty (or duplicated) preset would persist on disk even after
+    /// cancelling out of creating it.
+    /// </summary>
     public class PresetEditMenu : IClickableMenu
     {
         private readonly IModHelper Helper;
         private readonly ModConfig Config;
         private readonly PresetManager Presets;
         private readonly string PresetName;
+        private readonly bool IsNewPreset;
 
         private readonly List<(ModListing Mod, ModAction Action)> AllActions = new();
         private readonly List<ClickableComponent> RowComponents = new();
@@ -28,13 +38,14 @@ namespace StardewControllerMenu.Framework
         private const int ContentTop = 96;
         private const int VisibleRows = 7;
 
-        public PresetEditMenu(IModHelper helper, ModConfig config, PresetManager presets, string presetName, IEnumerable<string> initiallyIncludedActionKeys)
+        public PresetEditMenu(IModHelper helper, ModConfig config, PresetManager presets, string presetName, IEnumerable<string> initiallyIncludedActionKeys, bool isNewPreset)
             : base(Game1.uiViewport.Width / 2 - 400, Game1.uiViewport.Height / 2 - 300, 800, 600, showUpperRightCloseButton: true)
         {
             this.Helper = helper;
             this.Config = config;
             this.Presets = presets;
             this.PresetName = presetName;
+            this.IsNewPreset = isNewPreset;
 
             foreach (ModListing mod in this.Presets.GetAllEntries())
             {
@@ -210,6 +221,9 @@ namespace StardewControllerMenu.Framework
 
         private void Cancel()
         {
+            if (this.IsNewPreset)
+                this.Presets.DeletePreset(this.PresetName);
+
             Game1.playSound("bigDeSelect");
             Game1.activeClickableMenu = new QuickMenu(this.Helper, this.Config, this.Presets);
         }
@@ -251,7 +265,8 @@ namespace StardewControllerMenu.Framework
                 Utility.drawTextWithShadow(b, label, Game1.smallFont, new Vector2(row.bounds.X + 8, row.bounds.Y + 8), Game1.textColor);
             }
 
-            string hint = TextLayout.FitToWidth("A: toggle action   Y: save   B: cancel (discards changes)", this.width - 64);
+            string cancelHint = this.IsNewPreset ? "B: cancel (deletes this new preset)" : "B: cancel (discards changes)";
+            string hint = TextLayout.FitToWidth($"A: toggle action   Y: save   {cancelHint}", this.width - 64);
             Utility.drawTextWithShadow(b, hint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Game1.textColor);
             this.drawMouse(b);
         }

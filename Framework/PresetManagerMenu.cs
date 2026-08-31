@@ -12,7 +12,7 @@ namespace StardewControllerMenu.Framework
 {
     /// <summary>
     /// Lists every saved preset in the active profile, plus an option to create a new one.
-    /// A: open the preset in <see cref="PresetEditMenu"/> to toggle its mods. Y: duplicate it (name
+    /// A: open the preset in <see cref="PresetEditMenu"/> to toggle its actions. Y: duplicate it (name
     /// the copy, then edit it). X: request deletion - a separate confirmation step follows, using a
     /// different button than X on purpose, so you can't delete something by pressing the same button
     /// twice out of habit. B: back to the quick menu.
@@ -239,14 +239,14 @@ namespace StardewControllerMenu.Framework
                 Game1.activeClickableMenu = new PresetNamePrompt(
                     "New Preset",
                     "",
-                    name => this.CreateAndEdit(name),
+                    name => this.CreateAndEdit("New Preset", name),
                     this.ReturnToSelf);
                 return;
             }
 
             string presetName = this.Rows[index];
             IEnumerable<string> included = GetActionKeys(this.Presets.GetActivePresetEntries(presetName));
-            Game1.activeClickableMenu = new PresetEditMenu(this.Helper, this.Config, this.Presets, presetName, included);
+            Game1.activeClickableMenu = new PresetEditMenu(this.Helper, this.Config, this.Presets, presetName, included, isNewPreset: false);
         }
 
         private void Duplicate(int index)
@@ -260,11 +260,12 @@ namespace StardewControllerMenu.Framework
             Game1.activeClickableMenu = new PresetNamePrompt(
                 "Duplicate Preset",
                 $"{sourceName} Copy",
-                name => this.CreateAndEdit(name, included),
+                name => this.CreateAndEdit("Duplicate Preset", name, included),
                 this.ReturnToSelf);
         }
 
-        private void CreateAndEdit(string name, IEnumerable<string> initialActionKeys = null)
+        /// <summary>Creates a brand-new preset (from "+ New Preset" or Duplicate) and opens it for editing. Refuses to overwrite an existing preset silently - <see cref="PresetManager.SavePreset"/> would happily clobber one, so this checks first and re-prompts for a different name instead.</summary>
+        private void CreateAndEdit(string promptTitle, string name, IEnumerable<string> initialActionKeys = null)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -272,9 +273,20 @@ namespace StardewControllerMenu.Framework
                 return;
             }
 
+            if (this.Presets.GetPresetNames().Contains(name))
+            {
+                Game1.showRedMessage($"A preset named \"{name}\" already exists - pick a different name.");
+                Game1.activeClickableMenu = new PresetNamePrompt(
+                    promptTitle,
+                    name,
+                    newName => this.CreateAndEdit(promptTitle, newName, initialActionKeys),
+                    this.ReturnToSelf);
+                return;
+            }
+
             List<string> included = (initialActionKeys ?? Enumerable.Empty<string>()).ToList();
             this.Presets.SavePreset(name, included);
-            Game1.activeClickableMenu = new PresetEditMenu(this.Helper, this.Config, this.Presets, name, included);
+            Game1.activeClickableMenu = new PresetEditMenu(this.Helper, this.Config, this.Presets, name, included, isNewPreset: true);
         }
 
         private static IEnumerable<string> GetActionKeys(IEnumerable<ModListing> mods)
@@ -360,7 +372,7 @@ namespace StardewControllerMenu.Framework
 
             string hint = this.PendingDeleteIndex is int pendingIndex
                 ? $"Delete '{this.Rows[pendingIndex]}'? Press A (or click) to confirm - any other input cancels."
-                : "A/click: edit mods   Y: duplicate   X/right-click: delete   B: back";
+                : "A/click: edit actions   Y: duplicate   X/right-click: delete   B: back";
             hint = TextLayout.FitToWidth(hint, this.width - 64);
             Color hintColor = this.PendingDeleteIndex != null ? Color.Red : Game1.textColor;
             Utility.drawTextWithShadow(b, hint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), hintColor);

@@ -10,7 +10,7 @@ Each entry's `Name` and `Description` were written by hand afterwards, based on 
 
 ## A conflict this scan actually found
 
-**CapeStardewCode** binds `LeftShoulder + RightShoulder` to "Toggle Orb of Tides (Controller)" — which is the exact same combo this mod uses by default to open its own quick menu (`ModConfig.OpenMenuButton`). If you use this profile as-is, change `OpenMenuButton` in `config.json` to something else first (the shipped default is `LeftStick + RightStick` for this reason). This is a good example of why the entries file is worth generating from your real setup rather than guessing — conflicts like this are easy to miss by hand across 27+ mods.
+**CapeStardewCode** binds `LeftShoulder + RightShoulder` to "Toggle Orb of Tides (Controller)" — which is the exact same combo this mod itself uses **by default** to open its own quick menu (`ModConfig.OpenMenuButton`). An earlier default of `LeftStick + RightStick` was tried specifically to dodge this, but that turned out worse - `RightStick` has a hardcoded vanilla behavior (opens chat/the emote wheel) that can't be suppressed at all, so the default reverted to `LeftShoulder + RightShoulder` despite this conflict, which is at least fixable. If you use this profile as-is, change `OpenMenuButton` in `config.json` to something else first (SMAPI's own `SuppressActiveKeybinds` stops it from also firing CapeStardewCode's action, but you'll still want a combo that isn't already spoken for). This is a good example of why the entries file is worth generating from your real setup rather than guessing — conflicts like this are easy to miss by hand across 27+ mods.
 
 ## Using this profile yourself
 

@@ -60,16 +60,17 @@ namespace StardewControllerMenu.Framework
             this.HighlightedIndex = (int)MathF.Round(angle / wedgeAngle) % this.Items.Count;
         }
 
-        /// <summary>Trigger the highlighted entry's keybind, if any is highlighted. Call on button release. Returns whether anything was triggered.</summary>
-        public bool ActivateHighlighted()
+        /// <summary>Trigger the highlighted entry's keybind, if any is highlighted. Call on button release.</summary>
+        public void ActivateHighlighted()
         {
             if (this.HighlightedIndex < 0 || this.HighlightedIndex >= this.Items.Count)
-                return false;
+                return; // released near center - an intentional cancel, not an error, so no message
 
             (ModListing mod, ModAction action) = this.Items[this.HighlightedIndex];
-            KeySender.Send(action.Keybind);
-            Game1.playSound("select");
-            return true;
+            bool sent = KeySender.Send(action.Keybind);
+            Game1.playSound(sent ? "select" : "cancel");
+            if (!sent)
+                Game1.showRedMessage($"Couldn't trigger \"{action.Name}\" - see the SMAPI console for why.");
         }
 
         public override void draw(SpriteBatch b)

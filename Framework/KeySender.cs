@@ -23,29 +23,31 @@ namespace StardewControllerMenu.Framework
             Monitor = monitor;
         }
 
-        public static void Send(string keybindString)
+        /// <summary>Attempt to trigger the given keybind. Returns whether it was actually sent, so callers can tell the player when nothing happened instead of silently closing the menu as if it worked.</summary>
+        public static bool Send(string keybindString)
         {
             if (!KeybindList.TryParse(keybindString, out KeybindList list, out string[] errors) || list == null)
             {
                 Monitor?.Log($"Can't trigger '{keybindString}': failed to parse ({string.Join("; ", errors)}).", LogLevel.Warn);
-                return;
+                return false;
             }
 
             IInputInjector injector = GetInjector();
             if (injector == null)
             {
                 Monitor?.Log($"Can't trigger '{keybindString}': no working input-injection backend on this platform.", LogLevel.Warn);
-                return;
+                return false;
             }
 
             Keybind chosen = list.Keybinds.FirstOrDefault(keybind => keybind.Buttons.All(injector.CanSend));
             if (chosen == null)
             {
                 Monitor?.Log($"Can't trigger '{keybindString}': every alternative needs a button this platform can't simulate (e.g. a gamepad button).", LogLevel.Warn);
-                return;
+                return false;
             }
 
             injector.Send(chosen.Buttons);
+            return true;
         }
 
         private static IInputInjector GetInjector()

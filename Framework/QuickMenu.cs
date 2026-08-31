@@ -261,9 +261,11 @@ namespace StardewControllerMenu.Framework
                 return;
 
             (ModListing mod, ModAction action) = this.Rows[index];
-            KeySender.Send(action.Keybind);
-            Game1.playSound("select");
+            bool sent = KeySender.Send(action.Keybind);
+            Game1.playSound(sent ? "select" : "cancel");
             Game1.exitActiveMenu();
+            if (!sent)
+                Game1.showRedMessage($"Couldn't trigger \"{action.Name}\" - see the SMAPI console for why.");
         }
 
         private void OpenPresetManager()

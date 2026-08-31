@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using StardewControllerMenu.Framework;
@@ -27,6 +28,18 @@ namespace StardewControllerMenu
         private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
         {
             this.Presets.LoadProfile(this.Config.ActiveProfile);
+
+            // A hand-edited or stale config.json can pair a profile with a preset name that doesn't
+            // exist in it (e.g. after switching profiles outside the menu, or deleting a preset from
+            // a different profile than the one that was active). GetActivePresetEntries already falls
+            // back to "All" silently in that case, but the header would otherwise keep showing the
+            // nonexistent preset's name - fix the config itself instead of just working around it.
+            if (this.Config.ActivePreset != "All" && !this.Presets.GetPresetNames().Contains(this.Config.ActivePreset))
+            {
+                this.Monitor.Log($"Active preset '{this.Config.ActivePreset}' doesn't exist in profile '{this.Config.ActiveProfile}' - falling back to 'All'.", LogLevel.Warn);
+                this.Config.ActivePreset = "All";
+                this.Helper.WriteConfig(this.Config);
+            }
         }
 
         private void OnButtonsChanged(object sender, ButtonsChangedEventArgs e)
