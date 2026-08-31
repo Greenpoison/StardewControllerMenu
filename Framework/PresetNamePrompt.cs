@@ -90,6 +90,43 @@ namespace StardewControllerMenu.Framework
             this.TextBox.Selected = this.currentlySnappedComponent == this.TextBoxComponent;
         }
 
+        private static int? DirectionOf(Buttons button)
+        {
+            return button switch
+            {
+                Buttons.DPadUp or Buttons.LeftThumbstickUp => 0,
+                Buttons.DPadRight or Buttons.LeftThumbstickRight => 1,
+                Buttons.DPadDown or Buttons.LeftThumbstickDown => 2,
+                Buttons.DPadLeft or Buttons.LeftThumbstickLeft => 3,
+                _ => null
+            };
+        }
+
+        private static int? DirectionOf(Keys key)
+        {
+            return key switch
+            {
+                Keys.Up => 0,
+                Keys.Right => 1,
+                Keys.Down => 2,
+                Keys.Left => 3,
+                _ => null
+            };
+        }
+
+        /// <summary>A direction press either hands focus from the textbox to Save/Cancel navigation, or (once it's already off the textbox) actually moves the snap cursor - matching what the game's own NamingMenu does for the identical reason. Typing itself doesn't go through receiveKeyPress at all (see Game1.keyboardDispatcher.Subscriber in the constructor), so there's no fallthrough to a base implementation needed here or in receiveGamePadButton below - see QuickMenu's remarks for why that fallthrough is actively harmful for gamepad input anyway.</summary>
+        private void HandleDirection(int direction)
+        {
+            if (this.TextBox.Selected)
+            {
+                this.TextBox.Selected = false;
+                return;
+            }
+
+            this.applyMovementKey(direction);
+            this.SyncTextBoxSelection();
+        }
+
         public override void receiveKeyPress(Keys key)
         {
             if (key == Keys.Escape)
@@ -98,11 +135,8 @@ namespace StardewControllerMenu.Framework
                 return;
             }
 
-            if (!this.TextBox.Selected)
-            {
-                base.receiveKeyPress(key);
-                this.SyncTextBoxSelection();
-            }
+            if (DirectionOf(key) is int direction)
+                this.HandleDirection(direction);
         }
 
         public override void receiveGamePadButton(Buttons button)
@@ -113,25 +147,10 @@ namespace StardewControllerMenu.Framework
                 return;
             }
 
-            // The textbox has focus for as long as this prompt is open, which otherwise blocks the
-            // game's own D-pad-to-navigation translation entirely (see receiveKeyPress) - so a
-            // direction press has to explicitly hand focus back first, exactly like the game's own
-            // NamingMenu does for the same reason.
-            if (this.TextBox.Selected)
+            if (DirectionOf(button) is int direction)
             {
-                switch (button)
-                {
-                    case Buttons.DPadUp:
-                    case Buttons.DPadDown:
-                    case Buttons.DPadLeft:
-                    case Buttons.DPadRight:
-                    case Buttons.LeftThumbstickUp:
-                    case Buttons.LeftThumbstickDown:
-                    case Buttons.LeftThumbstickLeft:
-                    case Buttons.LeftThumbstickRight:
-                        this.TextBox.Selected = false;
-                        return;
-                }
+                this.HandleDirection(direction);
+                return;
             }
 
             if (button == Buttons.A && !this.TextBox.Selected)
@@ -140,10 +159,7 @@ namespace StardewControllerMenu.Framework
                     this.Submit();
                 else if (this.currentlySnappedComponent == this.CancelButton)
                     this.Cancel();
-                return;
             }
-
-            base.receiveGamePadButton(button);
         }
 
         public override void receiveLeftClick(int x, int y, bool playSound = true)

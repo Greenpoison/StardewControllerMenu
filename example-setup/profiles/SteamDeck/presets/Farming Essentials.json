@@ -1,11 +1,11 @@
 {
     "Name": "Farming Essentials",
-    "IncludedModNames": [
-        "Automate",
-        "Tractor Mod",
-        "Chests Anywhere",
-        "CJB Cheats Menu",
-        "Machine Control Panel",
-        "AutomaticGates"
+    "IncludedActionKeys": [
+        "Automate|Toggle Automate Overlay",
+        "Tractor Mod|Summon Tractor",
+        "Chests Anywhere|Open Chests Anywhere",
+        "CJB Cheats Menu|Open Cheats Menu",
+        "Machine Control Panel|Open Machine Control Panel",
+        "AutomaticGates|Toggle Gate Overlay"
     ]
 }

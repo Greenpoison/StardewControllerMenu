@@ -16,11 +16,14 @@ namespace StardewControllerMenu.Framework
     /// via <see cref="PresetManagerMenu"/>); LB/RB cycle presets and LT/RT cycle profiles without
     /// leaving this screen.
     ///
-    /// D-pad/left-stick navigation is deliberately NOT wired up in receiveGamePadButton: the game
-    /// already translates it into a synthetic keypress that reaches receiveKeyPress (confirmed by
-    /// decompiling Game1's input loop), which this class's receiveKeyPress falls through to the base
-    /// class for. Handling it a second time in receiveGamePadButton made the cursor skip every other
-    /// row - found the hard way in PresetManagerMenu, where it was obvious with only three rows.
+    /// D-pad/left-stick and arrow-key navigation is handled directly here (receiveGamePadButton /
+    /// receiveKeyPress), NOT via the base class's own fallthrough. Both this class and the game
+    /// independently react to the same physical D-pad press - the game translates it into a
+    /// synthetic WASD keypress for its own "snappy menu" handling whenever
+    /// Game1.options.snappyMenus &amp;&amp; gamepadControls are both true - so falling through to
+    /// base as well as handling the raw button here double-moved the cursor on every press. Neither
+    /// receiveGamePadButton nor receiveKeyPress call their base implementation for that reason; see
+    /// the comment in receiveKeyPress for the full explanation.
     /// </summary>
     public class QuickMenu : IClickableMenu
     {
@@ -133,11 +136,38 @@ namespace StardewControllerMenu.Framework
             }
         }
 
+        private static int? DirectionOf(Buttons button)
+        {
+            return button switch
+            {
+                Buttons.DPadUp or Buttons.LeftThumbstickUp => 0,
+                Buttons.DPadRight or Buttons.LeftThumbstickRight => 1,
+                Buttons.DPadDown or Buttons.LeftThumbstickDown => 2,
+                Buttons.DPadLeft or Buttons.LeftThumbstickLeft => 3,
+                _ => null
+            };
+        }
+
+        private static int? DirectionOf(Keys key)
+        {
+            return key switch
+            {
+                Keys.Up => 0,
+                Keys.Right => 1,
+                Keys.Down => 2,
+                Keys.Left => 3,
+                _ => null
+            };
+        }
+
         public override void receiveGamePadButton(Buttons button)
         {
-            // D-pad/left-stick navigation is NOT handled here - the game already translates it into
-            // a synthetic keypress for menu navigation (see receiveKeyPress's remarks), and handling
-            // it again here as well made the cursor skip every other row. Trust that single path.
+            if (DirectionOf(button) is int direction)
+            {
+                this.Move(direction);
+                return;
+            }
+
             switch (button)
             {
                 case Buttons.A:
@@ -170,11 +200,17 @@ namespace StardewControllerMenu.Framework
                     return;
             }
 
-            base.receiveGamePadButton(button);
+            // Deliberately no fallthrough to base.receiveGamePadButton - see the note in receiveKeyPress.
         }
 
         public override void receiveKeyPress(Keys key)
         {
+            if (DirectionOf(key) is int direction)
+            {
+                this.Move(direction);
+                return;
+            }
+
             switch (key)
             {
                 case Keys.OemCloseBrackets:
@@ -196,12 +232,26 @@ namespace StardewControllerMenu.Framework
                 case Keys.E:
                     this.OpenPresetManager();
                     return;
+
+                case Keys.Escape:
+                    this.exitThisMenu();
+                    return;
             }
 
-            // Anything else (including WASD/arrow keys) falls through to the base class, which is
-            // what actually drives snap navigation for keyboard and (via the game's own translation
-            // layer) some gamepad input - see the class remarks.
-            base.receiveKeyPress(key);
+            // Deliberately NOT falling through to base.receiveKeyPress here (or in
+            // receiveGamePadButton above): the game independently translates gamepad D-pad/stick
+            // input into synthetic WASD keypresses for its own menu navigation whenever
+            // Game1.options.snappyMenus && gamepadControls are both true, on top of the raw button
+            // event this class already handles directly via receiveGamePadButton. Falling through
+            // to base as well double-moved the cursor on every single press - confirmed the hard
+            // way as "always skips one option." Handling navigation exclusively through the two
+            // DirectionOf() checks above (arrow keys for keyboard, D-pad/thumbstick for gamepad)
+            // removes that second, uncontrollable path entirely.
+        }
+
+        private void Move(int direction)
+        {
+            this.applyMovementKey(direction);
             this.UpdateRowBounds();
         }
 

@@ -1,6 +1,6 @@
 {
     "Name": "Favorites",
-    "IncludedModNames": [
-        "Example Mod"
+    "IncludedActionKeys": [
+        "Example Mod|Toggle Debug Overlay"
     ]
 }

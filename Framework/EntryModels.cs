@@ -17,10 +17,16 @@ namespace StardewControllerMenu.Framework
         public List<ModAction> Actions { get; set; } = new();
     }
 
-    /// <summary>A named, saveable filter over the full entry list (e.g. "Favorites"). Presets can be created in-game.</summary>
+    /// <summary>A named, saveable filter over individual actions (e.g. "Favorites" might include a couple of actions from several different mods, not necessarily every action a mod has). Presets can be created in-game.</summary>
     public class Preset
     {
         public string Name { get; set; }
-        public List<string> IncludedModNames { get; set; } = new();
+        public List<string> IncludedActionKeys { get; set; } = new();
+    }
+
+    /// <summary>Builds/reads the composite key used to identify one specific action across all mods in a preset's <see cref="Preset.IncludedActionKeys"/>.</summary>
+    public static class ActionKey
+    {
+        public static string Of(string modName, string actionName) => $"{modName}|{actionName}";
     }
 }

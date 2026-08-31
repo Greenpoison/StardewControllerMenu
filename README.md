@@ -33,19 +33,19 @@ Switching preset or profile writes the choice straight back to `config.json`, so
 
 | Button | Action |
 | --- | --- |
-| A / click | Open the highlighted preset in the mod-toggle editor (see below); on "+ New Preset", name a new one first |
+| A / click | Open the highlighted preset in the action-toggle editor (see below); on "+ New Preset", name a new one first |
 | Y | Duplicate the highlighted preset - name the copy, then it opens straight into editing |
 | X | Request deletion of the highlighted preset |
 | B | Back to the Quick Menu |
 
 Deleting requires a second, *different* button on purpose: pressing X shows "Delete '\<name\>'? A = confirm. Any other button = cancel" - so a habitual double-tap of the same button can't delete something by accident. If the preset you delete was the active one, the Quick Menu falls back to "All".
 
-**Mod-toggle editor** (`Framework/PresetEditMenu.cs`, reached by opening a preset from the manager): lists every mod in the active profile with a checkbox, regardless of what's currently in the preset.
+**Action-toggle editor** (`Framework/PresetEditMenu.cs`, reached by opening a preset from the manager): lists every individual action across every mod in the active profile with a checkbox, regardless of what's currently in the preset. Presets are built at the action level, not the whole-mod level - a preset can include just one specific action from a mod that has a dozen, without dragging the other eleven along.
 
 | Button | Action |
 | --- | --- |
 | D-pad / left stick | Move the selection (scrolls the same way the Quick Menu does) |
-| A / click | Toggle the highlighted mod in/out of this preset |
+| A / click | Toggle the highlighted action in/out of this preset |
 | Y / `P` | Save - writes the current checkboxes back to this preset's name and switches the Quick Menu to it |
 | B | Cancel - discards any toggles made this visit; the preset keeps whatever it was before you opened the editor |
 
@@ -86,16 +86,16 @@ data/
 
 ### Presets
 
-Within a profile, every player has a default "All" view showing every entry. You can also define presets — named, filtered subsets of the full list (e.g. your most-used entries) — stored as individual files under that profile's `presets/` folder.
+Within a profile, every player has a default "All" view showing every entry. You can also define presets — named, filtered subsets of individual actions (not whole mods; a preset can cherry-pick one action out of a mod with a dozen) — stored as individual files under that profile's `presets/` folder.
 
 ```json
 {
     "Name": "Favorites",
-    "IncludedModNames": ["Example Mod"]
+    "IncludedActionKeys": ["Example Mod|Toggle Debug Overlay"]
 }
 ```
 
-Presets are built entirely in-game, through the preset manager and mod-toggle editor described under Menu controls above: name it, then toggle mods into it from the full list, rather than hand-editing this JSON between sessions. Set `ActivePreset` in `config.json` to change the default at launch, or switch/cycle it live from the Quick Menu.
+Each entry in `IncludedActionKeys` is `"<ModName>|<Action Name>"`, matching `ActionKey.Of` in `Framework/EntryModels.cs`. Presets are built entirely in-game, through the preset manager and action-toggle editor described under Menu controls above: name it, then toggle individual actions into it from the full list, rather than hand-editing this JSON between sessions. Set `ActivePreset` in `config.json` to change the default at launch, or switch/cycle it live from the Quick Menu.
 
 ## Triggering the actual keybind
 
@@ -127,7 +127,8 @@ When you select an entry, `Framework/KeySender.cs` simulates the real input, usi
 - [x] In-game profile switcher (cycle profiles from the menu; persists to `config.json`)
 - [x] Radial menu prototype (see "Radial menu (experimental)" above) - compiles, not yet verified in-game
 - [x] First real in-game test - found and fixed the chat-opening conflict, broken D-pad navigation, the uncancelable naming prompt, and text/scrolling overflow (see Testing below)
-- [ ] Confirm the fixes above actually resolved things on a second real playtest, and specifically verify `KeySender` triggers other mods and the radial menu's direction math is correct
+- [x] Root-caused navigation properly (two independent systems both moving the cursor per press) and switched presets to per-action rather than per-mod inclusion (see Testing below)
+- [ ] Confirm navigation and preset editing actually work on a real playtest of this latest round, and specifically verify `KeySender` triggers other mods and the radial menu's direction math is correct
 - [ ] Decide whether the radial menu needs its own on/off setting and a dedicated small preset (a dozen-mod "All" view makes for very cramped wedges), or should stay a `RadialMenuButton`-gated experiment
 
 ## Testing
@@ -144,6 +145,10 @@ A compile check can't catch everything a real playtest does, though. The first a
 A second pass after that turned up two more: the header itself (`"Quick Menu - Profile: SteamDeck - Preset: All"`) was drawn in Stardew's big decorative `SpriteText` font, which is fine for a short fixed title but overflowed the box once it included variable-length profile/preset names, clipping into the row list below it. Split into a short fixed `SpriteText` title plus a compact `smallFont` status line underneath, with content's vertical start computed from `SpriteText.getHeightOfString` instead of a guessed pixel offset. Separately, gamepad B did nothing at all in the Quick Menu (it only closes vanilla menus by way of a keyboard-only shortcut check in the base class, which doesn't cover controllers) - added explicit B/Escape-to-close handling.
 
 While rebuilding the preset workflow (see Presets above), settled on one rule that now holds across every screen this mod adds: **B always means "back / cancel without saving," and never anything else** - answering a real point of confusion once B was doing different, undocumented things in different screens.
+
+Navigation still wasn't reliable after all of the above, on a further round of testing - the actual root cause took a third pass to pin down properly instead of guessing again. The real mechanism: the game runs *two independent* systems that both react to the same physical D-pad/stick press when a custom menu is open - the raw button event this mod's `receiveGamePadButton` handles directly, and a completely separate per-tick poll in `Game1` (`directionKeyPolling`) that, whenever `Game1.options.snappyMenus && gamepadControls` are both true, translates the same press into a *synthetic* WASD keypress delivered to `receiveKeyPress`. Every previous attempt either handled both (double-moving the cursor on every press) or relied solely on the synthetic-keypress path (which does nothing when `gamepadControls` isn't set the way this project assumed it would be - matching "still not working"). The fix that's actually deterministic regardless of those option flags: handle navigation *exclusively* via the raw button/key events (`receiveGamePadButton` for D-pad/thumbstick, `receiveKeyPress` for literal arrow keys), and never call `base.receiveGamePadButton`/`base.receiveKeyPress` for anything, in any of the four menu classes - severing the synthetic-keypress path entirely rather than trying to coexist with it. Typing in `PresetNamePrompt` is unaffected, since it goes through `Game1.keyboardDispatcher.Subscriber`, a wholly separate pipeline from `receiveKeyPress`.
+
+Also switched presets from whole-mod inclusion to individual-action inclusion (`Preset.IncludedActionKeys` instead of `IncludedModNames` - see Presets above) - picking a specific action out of a mod that exposes several wasn't possible before. This is a breaking change to the preset file format; existing preset JSON files need rebuilding (or manually converting `"ModName"` entries to `"ModName|Action Name"` per action).
 
 What a compile check and this playtesting still don't cover: whether `KeySender`'s X11 `XTest` calls actually reach the game window through gamescope's compositor, and whether the radial menu's direction math has its sign conventions right. Both need another real test.
 

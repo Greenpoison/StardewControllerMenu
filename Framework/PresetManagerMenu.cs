@@ -125,6 +125,30 @@ namespace StardewControllerMenu.Framework
             }
         }
 
+        private static int? DirectionOf(Buttons button)
+        {
+            return button switch
+            {
+                Buttons.DPadUp or Buttons.LeftThumbstickUp => 0,
+                Buttons.DPadRight or Buttons.LeftThumbstickRight => 1,
+                Buttons.DPadDown or Buttons.LeftThumbstickDown => 2,
+                Buttons.DPadLeft or Buttons.LeftThumbstickLeft => 3,
+                _ => null
+            };
+        }
+
+        private static int? DirectionOf(Keys key)
+        {
+            return key switch
+            {
+                Keys.Up => 0,
+                Keys.Right => 1,
+                Keys.Down => 2,
+                Keys.Left => 3,
+                _ => null
+            };
+        }
+
         public override void receiveGamePadButton(Buttons button)
         {
             if (this.PendingDeleteIndex is int pendingIndex)
@@ -136,7 +160,12 @@ namespace StardewControllerMenu.Framework
                 return;
             }
 
-            // D-pad/left-stick navigation is NOT handled here - see QuickMenu's class remarks for why.
+            if (DirectionOf(button) is int direction)
+            {
+                this.Move(direction);
+                return;
+            }
+
             switch (button)
             {
                 case Buttons.A:
@@ -159,7 +188,7 @@ namespace StardewControllerMenu.Framework
                     return;
             }
 
-            base.receiveGamePadButton(button);
+            // Deliberately no fallthrough to base.receiveGamePadButton - see QuickMenu's remarks for why.
         }
 
         public override void receiveKeyPress(Keys key)
@@ -170,6 +199,12 @@ namespace StardewControllerMenu.Framework
                     this.ConfirmDelete(pendingIndex);
                 else
                     this.CancelPendingDelete();
+                return;
+            }
+
+            if (DirectionOf(key) is int direction)
+            {
+                this.Move(direction);
                 return;
             }
 
@@ -185,7 +220,12 @@ namespace StardewControllerMenu.Framework
                 return;
             }
 
-            base.receiveKeyPress(key);
+            // Deliberately no fallthrough to base.receiveKeyPress - see QuickMenu's remarks for why.
+        }
+
+        private void Move(int direction)
+        {
+            this.applyMovementKey(direction);
             this.UpdateRowBounds();
         }
 
@@ -205,7 +245,7 @@ namespace StardewControllerMenu.Framework
             }
 
             string presetName = this.Rows[index];
-            IEnumerable<string> included = this.Presets.GetActivePresetEntries(presetName).Select(m => m.ModName);
+            IEnumerable<string> included = GetActionKeys(this.Presets.GetActivePresetEntries(presetName));
             Game1.activeClickableMenu = new PresetEditMenu(this.Helper, this.Config, this.Presets, presetName, included);
         }
 
@@ -215,7 +255,7 @@ namespace StardewControllerMenu.Framework
                 return;
 
             string sourceName = this.Rows[index];
-            List<string> included = this.Presets.GetActivePresetEntries(sourceName).Select(m => m.ModName).ToList();
+            List<string> included = GetActionKeys(this.Presets.GetActivePresetEntries(sourceName)).ToList();
 
             Game1.activeClickableMenu = new PresetNamePrompt(
                 "Duplicate Preset",
@@ -224,7 +264,7 @@ namespace StardewControllerMenu.Framework
                 this.ReturnToSelf);
         }
 
-        private void CreateAndEdit(string name, IEnumerable<string> initialMods = null)
+        private void CreateAndEdit(string name, IEnumerable<string> initialActionKeys = null)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -232,9 +272,14 @@ namespace StardewControllerMenu.Framework
                 return;
             }
 
-            List<string> included = (initialMods ?? Enumerable.Empty<string>()).ToList();
+            List<string> included = (initialActionKeys ?? Enumerable.Empty<string>()).ToList();
             this.Presets.SavePreset(name, included);
             Game1.activeClickableMenu = new PresetEditMenu(this.Helper, this.Config, this.Presets, name, included);
+        }
+
+        private static IEnumerable<string> GetActionKeys(IEnumerable<ModListing> mods)
+        {
+            return mods.SelectMany(mod => mod.Actions.Select(action => ActionKey.Of(mod.ModName, action.Name)));
         }
 
         private void RequestDelete(int index)
