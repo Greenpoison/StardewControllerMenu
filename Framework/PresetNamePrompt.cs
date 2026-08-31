@@ -22,6 +22,7 @@ namespace StardewControllerMenu.Framework
         private readonly SubmitBehavior OnSubmit;
         private readonly Action OnCancel;
         private readonly TextBox TextBox;
+        private readonly ClickableComponent TextBoxComponent;
         private readonly ClickableComponent SaveButton;
         private readonly ClickableComponent CancelButton;
 
@@ -44,31 +45,49 @@ namespace StardewControllerMenu.Framework
             this.TextBox.OnEnterPressed += _ => this.Submit();
             Game1.keyboardDispatcher.Subscriber = this.TextBox;
 
+            // Represents the textbox in the snap-navigation graph, so a player who navigates down to
+            // Save/Cancel (which deselects it - see receiveGamePadButton) can navigate back up to it
+            // and resume editing, instead of being stuck only toggling between the two buttons.
+            this.TextBoxComponent = new ClickableComponent(new Rectangle(this.TextBox.X, this.TextBox.Y, this.TextBox.Width, this.TextBox.Height), "Name")
+            {
+                myID = 0,
+                downNeighborID = 1
+            };
             this.SaveButton = new ClickableComponent(new Rectangle(this.TextBox.X, this.TextBox.Y + 64, 150, 56), "Save")
             {
                 myID = 1,
+                upNeighborID = 0,
                 rightNeighborID = 2
             };
             this.CancelButton = new ClickableComponent(new Rectangle(this.TextBox.X + 180, this.TextBox.Y + 64, 150, 56), "Cancel")
             {
                 myID = 2,
+                upNeighborID = 0,
                 leftNeighborID = 1
             };
-            this.allClickableComponents = new List<ClickableComponent> { this.SaveButton, this.CancelButton };
-            this.currentlySnappedComponent = this.SaveButton;
+            this.allClickableComponents = new List<ClickableComponent> { this.TextBoxComponent, this.SaveButton, this.CancelButton };
+            this.currentlySnappedComponent = this.TextBoxComponent;
             this.snapCursorToCurrentSnappedComponent();
         }
 
         private void Submit()
         {
             this.TextBox.Selected = false;
+            Game1.keyboardDispatcher.Subscriber = null;
             this.OnSubmit(this.TextBox.Text);
         }
 
         private void Cancel()
         {
             this.TextBox.Selected = false;
+            Game1.keyboardDispatcher.Subscriber = null;
             this.OnCancel();
+        }
+
+        /// <summary>Keep TextBox.Selected in sync with whether the snap cursor is actually on it, so navigating back onto it resumes editing and navigating off it (see receiveGamePadButton) doesn't leave it silently still capturing keystrokes.</summary>
+        private void SyncTextBoxSelection()
+        {
+            this.TextBox.Selected = this.currentlySnappedComponent == this.TextBoxComponent;
         }
 
         public override void receiveKeyPress(Keys key)
@@ -80,7 +99,10 @@ namespace StardewControllerMenu.Framework
             }
 
             if (!this.TextBox.Selected)
+            {
                 base.receiveKeyPress(key);
+                this.SyncTextBoxSelection();
+            }
         }
 
         public override void receiveGamePadButton(Buttons button)
@@ -152,7 +174,7 @@ namespace StardewControllerMenu.Framework
             Utility.drawTextWithShadow(b, "Save", Game1.smallFont, new Vector2(this.SaveButton.bounds.X + 16, this.SaveButton.bounds.Y + 16), Game1.textColor);
             Utility.drawTextWithShadow(b, "Cancel", Game1.smallFont, new Vector2(this.CancelButton.bounds.X + 8, this.CancelButton.bounds.Y + 16), Game1.textColor);
 
-            Utility.drawTextWithShadow(b, "Enter: save   Esc/B: cancel", Game1.smallFont, new Vector2(this.TextBox.X, this.TextBox.Y + 140), Game1.textColor);
+            Utility.drawTextWithShadow(b, "Enter: save   Esc/B: cancel   D-pad: move between name/Save/Cancel", Game1.smallFont, new Vector2(this.TextBox.X - 40, this.TextBox.Y + 140), Game1.textColor);
 
             this.drawMouse(b);
         }

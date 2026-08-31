@@ -31,7 +31,11 @@ namespace StardewControllerMenu.Framework
         /// <summary>Index into <see cref="Rows"/> awaiting delete confirmation, or null if nothing is pending.</summary>
         private int? PendingDeleteIndex;
 
+        private int ScrollOffset;
+
         private const int RowHeight = 64;
+        private const int ContentTop = 96;
+        private const int VisibleRows = 5;
 
         public PresetManagerMenu(IModHelper helper, ModConfig config, PresetManager presets)
             : base(Game1.uiViewport.Width / 2 - 300, Game1.uiViewport.Height / 2 - 250, 600, 500, showUpperRightCloseButton: true)
@@ -45,9 +49,7 @@ namespace StardewControllerMenu.Framework
 
             for (int i = 0; i < this.Rows.Count; i++)
             {
-                this.RowComponents.Add(new ClickableComponent(
-                    new Rectangle(this.xPositionOnScreen + 32, this.yPositionOnScreen + 96 + i * RowHeight, this.width - 64, RowHeight - 8),
-                    this.Rows[i])
+                this.RowComponents.Add(new ClickableComponent(new Rectangle(), this.Rows[i])
                 {
                     myID = i,
                     upNeighborID = i > 0 ? i - 1 : -1,
@@ -58,7 +60,30 @@ namespace StardewControllerMenu.Framework
             this.allClickableComponents = new List<ClickableComponent>(this.RowComponents);
             if (this.RowComponents.Count > 0)
                 this.currentlySnappedComponent = this.RowComponents[0];
+            this.UpdateRowBounds();
             this.snapCursorToCurrentSnappedComponent();
+        }
+
+        /// <summary>Keep the snapped row scrolled into view, then position each row's clickable bounds for however it's currently scrolled - off-screen rows get moved out of click range instead of being drawn. Without this, more than ~5 presets would overflow past the hint bar exactly like the Quick Menu did before it got the same treatment.</summary>
+        private void UpdateRowBounds()
+        {
+            if (this.currentlySnappedComponent != null)
+            {
+                int snappedIndex = this.currentlySnappedComponent.myID;
+                if (snappedIndex < this.ScrollOffset)
+                    this.ScrollOffset = snappedIndex;
+                else if (snappedIndex >= this.ScrollOffset + VisibleRows)
+                    this.ScrollOffset = snappedIndex - VisibleRows + 1;
+            }
+            this.ScrollOffset = System.Math.Clamp(this.ScrollOffset, 0, System.Math.Max(0, this.Rows.Count - VisibleRows));
+
+            for (int i = 0; i < this.RowComponents.Count; i++)
+            {
+                int slot = i - this.ScrollOffset;
+                this.RowComponents[i].bounds = (slot >= 0 && slot < VisibleRows)
+                    ? new Rectangle(this.xPositionOnScreen + 32, this.yPositionOnScreen + ContentTop + slot * RowHeight, this.width - 64, RowHeight - 8)
+                    : new Rectangle(-10000, -10000, 1, 1);
+            }
         }
 
         public override void receiveLeftClick(int x, int y, bool playSound = true)
@@ -161,6 +186,7 @@ namespace StardewControllerMenu.Framework
             }
 
             base.receiveKeyPress(key);
+            this.UpdateRowBounds();
         }
 
         private void Select(int index)
@@ -259,12 +285,21 @@ namespace StardewControllerMenu.Framework
 
         public override void draw(SpriteBatch b)
         {
+            this.UpdateRowBounds();
+
             b.Draw(Game1.fadeToBlackRect, Game1.graphics.GraphicsDevice.Viewport.Bounds, Color.Black * 0.5f);
             drawTextureBox(b, this.xPositionOnScreen, this.yPositionOnScreen, this.width, this.height, Color.White);
 
             SpriteText.drawString(b, "Presets", this.xPositionOnScreen + 32, this.yPositionOnScreen + 24);
 
-            for (int i = 0; i < this.Rows.Count; i++)
+            if (this.Rows.Count > VisibleRows)
+            {
+                string counter = $"{this.ScrollOffset + 1}-{System.Math.Min(this.ScrollOffset + VisibleRows, this.Rows.Count)} of {this.Rows.Count}";
+                Vector2 counterSize = Game1.smallFont.MeasureString(counter);
+                Utility.drawTextWithShadow(b, counter, Game1.smallFont, new Vector2(this.xPositionOnScreen + this.width - 32 - counterSize.X, this.yPositionOnScreen + 32), Game1.textColor);
+            }
+
+            for (int i = this.ScrollOffset; i < System.Math.Min(this.ScrollOffset + VisibleRows, this.Rows.Count); i++)
             {
                 ClickableComponent row = this.RowComponents[i];
                 bool isPendingDelete = this.PendingDeleteIndex == i;
