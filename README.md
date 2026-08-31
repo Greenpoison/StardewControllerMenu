@@ -46,7 +46,10 @@ Deleting requires a second, *different* input on purpose: requesting one shows "
 | D-pad / left stick | Move the selection (scrolls the same way the Quick Menu does) |
 | A / `Enter` / click | Toggle the highlighted action in/out of this preset |
 | Y / `P` | Save - writes the current checkboxes back to this preset's name and switches the Quick Menu to it |
+| X / right-click / `Delete` | Request deleting the *whole preset* being edited (not a single action) |
 | B | Cancel - discards any toggles made this visit; the preset keeps whatever it was before you opened the editor |
+
+Deleting from here works the same way as in the preset manager - X requests it, and confirming needs a different input (A/Enter/click) than what invoked it, so a habitual repeat press can't delete something by accident. This is a second way to delete a preset (alongside the one in the preset manager below), added because it's reachable from a screen where interaction was already working reliably.
 
 ## Profiles
 
@@ -163,7 +166,9 @@ The `Enter` fallback helped (actions can now be toggled into a preset), but two 
 
 Separately, checked `KeySender`'s actual behavior directly by reading the SMAPI log over SSH rather than asking for another round of "does this work" - confirmed `libXtst.so.6` is present on this Deck and no error/warning ever came from the mod, meaning `KeySender.Send` believed it succeeded every time, yet the target mod's action never happened. That points at a specific, well-known `XTest` gotcha: sending a key-down immediately followed by a key-up with zero delay between them can be too fast for the target application's own input polling to ever observe the "down" state at all. Fixed by holding the combo briefly (50ms) before releasing - paced by the X server itself via `XTestFakeKeyEvent`'s own delay parameter once the request is queued, not a blocking sleep on the game's thread. Applied the same fix to `WindowsInputInjector`, using a background-task delay between two separate `SendInput` calls instead (`SendInput` has no built-in pacing, and a blocking sleep there would stall the game's main thread since `Send` runs on it).
 
-What a compile check and this playtesting still don't cover: whether the XTest timing fix actually resolves triggering, whether the cursor-jump fix actually resolves delete, and whether the radial menu's direction math has its sign conventions right. All need another real test.
+Delete via the preset manager still wasn't confirmed working even after the cursor-jump fix, so rather than keep chasing it in that screen, added a second, independent way to delete reachable from the action-toggle editor instead (X requests, A/Enter/click confirms, anything else cancels - same pattern, different screen) - a screen where interaction was already confirmed working, since actions could already be toggled in there with A. Both delete paths remain; this one's just easier to reach if the preset manager's own navigation is still giving trouble.
+
+What a compile check and this playtesting still don't cover: whether the XTest timing fix actually resolves triggering, whether the cursor-jump fix actually resolves delete via the preset manager, whether this new delete-from-editor path actually works, and whether the radial menu's direction math has its sign conventions right. All need another real test.
 
 ## Building
 

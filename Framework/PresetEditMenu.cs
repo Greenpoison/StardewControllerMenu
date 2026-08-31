@@ -19,6 +19,10 @@ namespace StardewControllerMenu.Framework
     /// constructor), it means actually deleting the just-created stub, since otherwise "discards
     /// changes" would be a lie - the empty (or duplicated) preset would persist on disk even after
     /// cancelling out of creating it.
+    /// X requests deleting the whole preset being edited (not a single action) - a separate
+    /// confirmation step follows, using a different input than X on purpose, so a habitual repeat
+    /// press can't delete something by accident. This is a second way to delete a preset, alongside
+    /// the one in PresetManagerMenu, added because a player found it easier to reach from here.
     /// </summary>
     public class PresetEditMenu : IClickableMenu
     {
@@ -32,6 +36,7 @@ namespace StardewControllerMenu.Framework
         private readonly List<ClickableComponent> RowComponents = new();
         private readonly HashSet<string> Selected;
 
+        private bool PendingDelete;
         private int ScrollOffset;
 
         private const int RowHeight = 64;
@@ -102,6 +107,13 @@ namespace StardewControllerMenu.Framework
         public override void receiveLeftClick(int x, int y, bool playSound = true)
         {
             base.receiveLeftClick(x, y, playSound);
+
+            if (this.PendingDelete)
+            {
+                this.ConfirmDelete();
+                return;
+            }
+
             for (int i = 0; i < this.RowComponents.Count; i++)
             {
                 if (this.RowComponents[i].containsPoint(x, y))
@@ -110,6 +122,15 @@ namespace StardewControllerMenu.Framework
                     return;
                 }
             }
+        }
+
+        /// <summary>Right-click requests deleting the whole preset, mirroring gamepad X. Unlike PresetManagerMenu's row-scoped delete, this isn't tied to a specific row - the whole screen is already scoped to one preset - so it fires regardless of where the click lands.</summary>
+        public override void receiveRightClick(int x, int y, bool playSound = true)
+        {
+            if (this.PendingDelete)
+                this.CancelPendingDelete();
+            else
+                this.RequestDelete();
         }
 
         private static int? DirectionOf(Buttons button)
@@ -138,6 +159,15 @@ namespace StardewControllerMenu.Framework
 
         public override void receiveGamePadButton(Buttons button)
         {
+            if (this.PendingDelete)
+            {
+                if (button == Buttons.A)
+                    this.ConfirmDelete();
+                else
+                    this.CancelPendingDelete();
+                return;
+            }
+
             if (DirectionOf(button) is int direction)
             {
                 this.Move(direction);
@@ -155,6 +185,10 @@ namespace StardewControllerMenu.Framework
                     this.Save();
                     return;
 
+                case Buttons.X:
+                    this.RequestDelete();
+                    return;
+
                 case Buttons.B:
                     this.Cancel();
                     return;
@@ -165,6 +199,15 @@ namespace StardewControllerMenu.Framework
 
         public override void receiveKeyPress(Keys key)
         {
+            if (this.PendingDelete)
+            {
+                if (key == Keys.Enter)
+                    this.ConfirmDelete();
+                else
+                    this.CancelPendingDelete();
+                return;
+            }
+
             if (DirectionOf(key) is int direction)
             {
                 this.Move(direction);
@@ -181,6 +224,10 @@ namespace StardewControllerMenu.Framework
 
                 case Keys.P:
                     this.Save();
+                    return;
+
+                case Keys.Delete:
+                    this.RequestDelete();
                     return;
 
                 case Keys.Escape:
@@ -255,12 +302,40 @@ namespace StardewControllerMenu.Framework
             Game1.activeClickableMenu = new QuickMenu(this.Helper, this.Config, this.Presets);
         }
 
+        private void RequestDelete()
+        {
+            this.PendingDelete = true;
+            Game1.playSound("cancel");
+        }
+
+        private void ConfirmDelete()
+        {
+            this.Presets.DeletePreset(this.PresetName);
+
+            if (this.Config.ActivePreset == this.PresetName)
+            {
+                this.Config.ActivePreset = "All";
+                this.Helper.WriteConfig(this.Config);
+            }
+
+            Game1.playSound("bigDeSelect");
+            Game1.activeClickableMenu = new QuickMenu(this.Helper, this.Config, this.Presets);
+        }
+
+        private void CancelPendingDelete()
+        {
+            this.PendingDelete = false;
+            Game1.playSound("smallSelect");
+        }
+
         public override void draw(SpriteBatch b)
         {
             this.UpdateRowBounds();
 
             b.Draw(Game1.fadeToBlackRect, Game1.graphics.GraphicsDevice.Viewport.Bounds, Color.Black * 0.5f);
             drawTextureBox(b, this.xPositionOnScreen, this.yPositionOnScreen, this.width, this.height, Color.White);
+            if (this.PendingDelete)
+                b.Draw(Game1.staminaRect, new Rectangle(this.xPositionOnScreen, this.yPositionOnScreen, this.width, this.height), Color.Red * 0.25f);
 
             const string title = "Edit Preset";
             SpriteText.drawString(b, title, this.xPositionOnScreen + 32, this.yPositionOnScreen + 24);
@@ -294,9 +369,20 @@ namespace StardewControllerMenu.Framework
                 Utility.drawTextWithShadow(b, label, Game1.smallFont, new Vector2(row.bounds.X + 8, row.bounds.Y + 8), Game1.textColor);
             }
 
-            string cancelHint = this.IsNewPreset ? "B: cancel (deletes this new preset)" : "B: cancel (discards changes)";
-            string hint = TextLayout.FitToWidth($"A/Enter: toggle action   Y: save   {cancelHint}", this.width - 64);
-            Utility.drawTextWithShadow(b, hint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Game1.textColor);
+            string hint;
+            Color hintColor;
+            if (this.PendingDelete)
+            {
+                hint = TextLayout.FitToWidth($"A/Enter/click deletes the whole preset \"{this.PresetName}\" - anything else cancels", this.width - 64);
+                hintColor = Color.Red;
+            }
+            else
+            {
+                string cancelHint = this.IsNewPreset ? "B: cancel (deletes this new preset)" : "B: cancel (discards changes)";
+                hint = TextLayout.FitToWidth($"A/Enter: toggle action   Y: save   X: delete preset   {cancelHint}", this.width - 64);
+                hintColor = Game1.textColor;
+            }
+            Utility.drawTextWithShadow(b, hint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), hintColor);
             this.drawMouse(b);
         }
     }
