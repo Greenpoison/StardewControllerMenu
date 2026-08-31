@@ -253,18 +253,6 @@ namespace StardewControllerMenu.Framework
             Game1.playSound("smallSelect");
         }
 
-        /// <summary>Shrink a label with an ellipsis if it's wider than the given pixel width, so it never draws outside the menu.</summary>
-        private static string FitToWidth(string text, float maxWidth)
-        {
-            if (Game1.smallFont.MeasureString(text).X <= maxWidth)
-                return text;
-
-            const string ellipsis = "...";
-            while (text.Length > 0 && Game1.smallFont.MeasureString(text + ellipsis).X > maxWidth)
-                text = text[..^1];
-            return text + ellipsis;
-        }
-
         public override void draw(SpriteBatch b)
         {
             this.UpdateRowBounds();
@@ -277,6 +265,7 @@ namespace StardewControllerMenu.Framework
 
             int titleHeight = SpriteText.getHeightOfString(title, 9999);
             int statusY = this.yPositionOnScreen + TitleTop + titleHeight + StatusGap;
+            status = TextLayout.FitToWidth(status, this.width - 64);
             Utility.drawTextWithShadow(b, status, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, statusY), Game1.textColor);
 
             if (this.Rows.Count > VisibleRows)
@@ -296,11 +285,17 @@ namespace StardewControllerMenu.Framework
                 if (isSnapped)
                     b.Draw(Game1.staminaRect, row.bounds, Color.Wheat * 0.6f);
 
-                string label = FitToWidth($"{mod.ModName} - {action.Name} [{action.Keybind}]", maxLabelWidth);
+                string label = TextLayout.FitToWidth($"{mod.ModName} - {action.Name} [{action.Keybind}]", maxLabelWidth);
                 Utility.drawTextWithShadow(b, label, Game1.smallFont, new Vector2(row.bounds.X + 8, row.bounds.Y + 8), Game1.textColor);
             }
 
-            Utility.drawTextWithShadow(b, "A: trigger   X: manage presets   LB/RB: preset   LT/RT: profile   B/Esc: close", Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Game1.textColor);
+            // Two short lines rather than one long one - a single line listing all five controls
+            // routinely overflowed the box's width once drawn.
+            float maxHintWidth = this.width - 64;
+            string hintLine1 = TextLayout.FitToWidth("A: trigger   X: manage presets   B/Esc: close", maxHintWidth);
+            string hintLine2 = TextLayout.FitToWidth("LB/RB: preset   LT/RT: profile", maxHintWidth);
+            Utility.drawTextWithShadow(b, hintLine1, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 58), Game1.textColor);
+            Utility.drawTextWithShadow(b, hintLine2, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 36), Game1.textColor);
 
             this.drawMouse(b);
         }

@@ -65,6 +65,25 @@ namespace StardewControllerMenu.Framework
         {
             base.receiveLeftClick(x, y, playSound);
 
+            if (this.PendingDeleteIndex is int pendingIndex)
+            {
+                this.ConfirmDelete(pendingIndex);
+                return;
+            }
+
+            for (int i = 0; i < this.RowComponents.Count; i++)
+            {
+                if (this.RowComponents[i].containsPoint(x, y))
+                {
+                    this.Select(i);
+                    return;
+                }
+            }
+        }
+
+        /// <summary>Right-click requests deletion, mirroring gamepad X - there was previously no mouse/touch way to request one at all, only the gamepad button.</summary>
+        public override void receiveRightClick(int x, int y, bool playSound = true)
+        {
             if (this.PendingDeleteIndex != null)
             {
                 this.CancelPendingDelete();
@@ -75,7 +94,7 @@ namespace StardewControllerMenu.Framework
             {
                 if (this.RowComponents[i].containsPoint(x, y))
                 {
-                    this.Select(i);
+                    this.RequestDelete(i);
                     return;
                 }
             }
@@ -252,12 +271,14 @@ namespace StardewControllerMenu.Framework
                 if (isSnapped)
                     b.Draw(Game1.staminaRect, row.bounds, Color.Wheat * 0.6f);
 
-                Utility.drawTextWithShadow(b, this.Rows[i], Game1.smallFont, new Vector2(row.bounds.X + 8, row.bounds.Y + 8), Game1.textColor);
+                string label = TextLayout.FitToWidth(this.Rows[i], this.width - 64 - 16);
+                Utility.drawTextWithShadow(b, label, Game1.smallFont, new Vector2(row.bounds.X + 8, row.bounds.Y + 8), Game1.textColor);
             }
 
             string hint = this.PendingDeleteIndex is int pendingIndex
-                ? $"Delete '{this.Rows[pendingIndex]}'?  A = confirm.  Any other button = cancel."
-                : "A: edit mods   Y: duplicate   X: delete   B: back";
+                ? $"Delete '{this.Rows[pendingIndex]}'? A/click = confirm. Anything else = cancel."
+                : "A/click: edit mods   Y: duplicate   X/right-click: delete   B: back";
+            hint = TextLayout.FitToWidth(hint, this.width - 64);
             Utility.drawTextWithShadow(b, hint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Game1.textColor);
 
             this.drawMouse(b);

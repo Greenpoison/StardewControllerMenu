@@ -160,17 +160,6 @@ namespace StardewControllerMenu.Framework
             Game1.activeClickableMenu = new QuickMenu(this.Helper, this.Config, this.Presets);
         }
 
-        private static string FitToWidth(string text, float maxWidth)
-        {
-            if (Game1.smallFont.MeasureString(text).X <= maxWidth)
-                return text;
-
-            const string ellipsis = "...";
-            while (text.Length > 0 && Game1.smallFont.MeasureString(text + ellipsis).X > maxWidth)
-                text = text[..^1];
-            return text + ellipsis;
-        }
-
         public override void draw(SpriteBatch b)
         {
             this.UpdateRowBounds();
@@ -181,7 +170,7 @@ namespace StardewControllerMenu.Framework
             const string title = "Edit Mods";
             SpriteText.drawString(b, title, this.xPositionOnScreen + 32, this.yPositionOnScreen + 24);
 
-            string status = $"Editing: {this.PresetName}   ({this.Selected.Count} selected)";
+            string status = TextLayout.FitToWidth($"Editing: {this.PresetName}   ({this.Selected.Count} selected)", this.width - 64);
             int titleHeight = SpriteText.getHeightOfString(title, 9999);
             int statusY = this.yPositionOnScreen + 24 + titleHeight + 4;
             Utility.drawTextWithShadow(b, status, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, statusY), Game1.textColor);
@@ -204,11 +193,12 @@ namespace StardewControllerMenu.Framework
                     b.Draw(Game1.staminaRect, row.bounds, Color.Wheat * 0.6f);
 
                 string checkbox = this.Selected.Contains(mod.ModName) ? "[x] " : "[ ] ";
-                string label = FitToWidth($"{checkbox}{mod.ModName} ({mod.Actions.Count} actions)", maxLabelWidth);
+                string label = TextLayout.FitToWidth($"{checkbox}{mod.ModName} ({mod.Actions.Count} actions)", maxLabelWidth);
                 Utility.drawTextWithShadow(b, label, Game1.smallFont, new Vector2(row.bounds.X + 8, row.bounds.Y + 8), Game1.textColor);
             }
 
-            Utility.drawTextWithShadow(b, "A: toggle mod   Y: save   B: cancel (discards changes)", Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Game1.textColor);
+            string hint = TextLayout.FitToWidth("A: toggle mod   Y: save   B: cancel (discards changes)", this.width - 64);
+            Utility.drawTextWithShadow(b, hint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Game1.textColor);
             this.drawMouse(b);
         }
     }
