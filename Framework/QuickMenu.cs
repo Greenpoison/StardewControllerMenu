@@ -13,8 +13,10 @@ namespace StardewControllerMenu.Framework
     /// <summary>
     /// A gamepad-navigable list of every mod action in the active preset. Selecting a row triggers
     /// that action's keybind. X opens the preset manager (create/edit/duplicate/delete presets,
-    /// via <see cref="PresetManagerMenu"/>); LB/RB cycle presets and LT/RT cycle profiles without
-    /// leaving this screen.
+    /// via <see cref="PresetManagerMenu"/>); LB/RB cycle presets without leaving this screen.
+    /// Profiles are deliberately NOT switchable in-game - a profile only changes when the player's
+    /// actual modpack changes, which happens outside the game, so that's handled by editing
+    /// ActiveProfile in config.json directly rather than adding an in-menu control for it.
     ///
     /// D-pad/left-stick and arrow-key navigation is handled directly here (receiveGamePadButton /
     /// receiveKeyPress), NOT via the base class's own fallthrough. Both this class and the game
@@ -190,14 +192,6 @@ namespace StardewControllerMenu.Framework
                 case Buttons.LeftShoulder:
                     this.CyclePreset(-1);
                     return;
-
-                case Buttons.RightTrigger:
-                    this.CycleProfile(1);
-                    return;
-
-                case Buttons.LeftTrigger:
-                    this.CycleProfile(-1);
-                    return;
             }
 
             // Deliberately no fallthrough to base.receiveGamePadButton - see the note in receiveKeyPress.
@@ -219,14 +213,6 @@ namespace StardewControllerMenu.Framework
 
                 case Keys.OemOpenBrackets:
                     this.CyclePreset(-1);
-                    return;
-
-                case Keys.PageDown:
-                    this.CycleProfile(1);
-                    return;
-
-                case Keys.PageUp:
-                    this.CycleProfile(-1);
                     return;
 
                 case Keys.E:
@@ -288,23 +274,6 @@ namespace StardewControllerMenu.Framework
             Game1.playSound("smallSelect");
         }
 
-        private void CycleProfile(int direction)
-        {
-            List<string> names = this.Presets.GetProfileNames().ToList();
-            if (names.Count == 0)
-                return;
-
-            int index = names.IndexOf(this.Config.ActiveProfile);
-            index = ((index < 0 ? 0 : index) + direction + names.Count) % names.Count;
-
-            this.Config.ActiveProfile = names[index];
-            this.Config.ActivePreset = "All";
-            this.Helper.WriteConfig(this.Config);
-            this.Presets.LoadProfile(this.Config.ActiveProfile);
-            this.RebuildRows();
-            Game1.playSound("smallSelect");
-        }
-
         public override void draw(SpriteBatch b)
         {
             this.UpdateRowBounds();
@@ -341,11 +310,11 @@ namespace StardewControllerMenu.Framework
                 Utility.drawTextWithShadow(b, label, Game1.smallFont, new Vector2(row.bounds.X + 8, row.bounds.Y + 8), Game1.textColor);
             }
 
-            // Two short lines rather than one long one - a single line listing all five controls
+            // Two short lines rather than one long one - a single line listing every control
             // routinely overflowed the box's width once drawn.
             float maxHintWidth = this.width - 64;
-            string hintLine1 = TextLayout.FitToWidth("A: trigger   X: manage presets   B/Esc: close", maxHintWidth);
-            string hintLine2 = TextLayout.FitToWidth("LB/RB: preset   LT/RT: profile", maxHintWidth);
+            string hintLine1 = TextLayout.FitToWidth("A: trigger   X: manage presets   LB/RB: preset", maxHintWidth);
+            string hintLine2 = TextLayout.FitToWidth("B/Esc: close", maxHintWidth);
             Utility.drawTextWithShadow(b, hintLine1, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 58), Game1.textColor);
             Utility.drawTextWithShadow(b, hintLine2, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 36), Game1.textColor);
 

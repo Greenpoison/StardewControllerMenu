@@ -24,17 +24,6 @@ namespace StardewControllerMenu.Framework
             this.Monitor = monitor;
         }
 
-        /// <summary>List every profile folder under data/profiles/, so players can see what's available.</summary>
-        public IEnumerable<string> GetProfileNames()
-        {
-            string fullFolder = Path.Combine(this.Helper.DirectoryPath, ProfilesFolder.Replace('/', Path.DirectorySeparatorChar));
-            if (!Directory.Exists(fullFolder))
-                return new[] { DefaultProfileName };
-
-            List<string> names = Directory.EnumerateDirectories(fullFolder).Select(Path.GetFileName).ToList();
-            return names.Count > 0 ? names : new[] { DefaultProfileName };
-        }
-
         /// <summary>Reload the given profile's entries.json and every preset file from disk. Safe to call again after switching profiles or editing a preset in-game.</summary>
         public void LoadProfile(string profileName)
         {

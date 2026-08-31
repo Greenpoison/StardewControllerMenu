@@ -24,10 +24,9 @@ See [`example-setup/`](example-setup/) for a full, real-world example — a prof
 | A / click | Trigger the selected entry |
 | X / `E` | Open the preset manager (create, edit, duplicate, delete presets) |
 | LB / RB, `[` / `]` | Cycle to the previous/next preset in the current profile |
-| LT / RT, `Page Up` / `Page Down` | Cycle to the previous/next profile |
 | B / Escape | Close the menu |
 
-Switching preset or profile writes the choice straight back to `config.json`, so it's remembered next session too.
+Switching preset writes the choice straight back to `config.json`, so it's remembered next session too. Profiles are deliberately **not** switchable from here - see Profiles below.
 
 **Preset manager** (`Framework/PresetManagerMenu.cs`, opened with X from the Quick Menu): lists every saved preset plus a "+ New Preset" entry.
 
@@ -51,7 +50,7 @@ Deleting requires a second, *different* button on purpose: pressing X shows "Del
 
 ## Profiles
 
-Every setting lives under a **profile**: a named folder of `entries.json` + `presets/`. This is meant for players who swap modpacks often — keep one profile per modpack, and switch by editing `ActiveProfile` in `config.json` (or by installing several profiles ahead of time and toggling between them at the start of a session).
+Every setting lives under a **profile**: a named folder of `entries.json` + `presets/`. This is meant for players who swap modpacks — keep one profile per modpack, and switch by editing `ActiveProfile` in `config.json`, then relaunching. This is deliberately a config edit, not an in-game control: a profile only needs to change when the actual set of installed mods changes, which happens outside the game anyway (installing/removing mods, then editing that profile's `entries.json` to match) - there's no scenario where switching profiles mid-session makes sense the way switching presets does.
 
 ```
 data/
@@ -95,7 +94,7 @@ Within a profile, every player has a default "All" view showing every entry. You
 }
 ```
 
-Each entry in `IncludedActionKeys` is `"<ModName>|<Action Name>"`, matching `ActionKey.Of` in `Framework/EntryModels.cs`. Presets are built entirely in-game, through the preset manager and action-toggle editor described under Menu controls above: name it, then toggle individual actions into it from the full list, rather than hand-editing this JSON between sessions. Set `ActivePreset` in `config.json` to change the default at launch, or switch/cycle it live from the Quick Menu.
+Each entry in `IncludedActionKeys` is `"<ModName>|<Action Name>"`, matching `ActionKey.Of` in `Framework/EntryModels.cs`. Presets are built entirely in-game, through the preset manager and action-toggle editor described under Menu controls above: name it, then toggle individual actions into it from the full list, rather than hand-editing this JSON between sessions. Set `ActivePreset` in `config.json` to change the default at launch, or switch/cycle it live from the Quick Menu (unlike profiles, switching presets mid-session is exactly what they're for).
 
 ## Triggering the actual keybind
 
@@ -124,7 +123,7 @@ When you select an entry, `Framework/KeySender.cs` simulates the real input, usi
 - [x] Implement real keypress injection (`KeySender`) for Windows/Proton and native Linux
 - [x] Compile against the real game/SMAPI assemblies (see Testing below)
 - [x] In-game preset editor (build a preset by toggling mods on/off, then save it, without leaving the menu)
-- [x] In-game profile switcher (cycle profiles from the menu; persists to `config.json`)
+- [x] ~~In-game profile switcher~~ - removed by request: profiles only change when the modpack does, which happens outside the game, so this is a `config.json` edit rather than an in-menu control
 - [x] Radial menu prototype (see "Radial menu (experimental)" above) - compiles, not yet verified in-game
 - [x] First real in-game test - found and fixed the chat-opening conflict, broken D-pad navigation, the uncancelable naming prompt, and text/scrolling overflow (see Testing below)
 - [x] Root-caused navigation properly (two independent systems both moving the cursor per press) and switched presets to per-action rather than per-mod inclusion (see Testing below)
