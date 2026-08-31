@@ -154,7 +154,7 @@ namespace StardewControllerMenu.Framework
         {
             if (this.PendingDeleteIndex is int pendingIndex)
             {
-                if (button == Buttons.A)
+                if (button == Buttons.A || button == Buttons.RightTrigger)
                     this.ConfirmDelete(pendingIndex);
                 else
                     this.CancelPendingDelete();
@@ -179,7 +179,16 @@ namespace StardewControllerMenu.Framework
                         this.Duplicate(this.currentlySnappedComponent.myID);
                     return;
 
+                // X is the "natural" button for this, but A/Y/B have all been confirmed working
+                // for this player while X and delete specifically have not - possibly a button
+                // that a Steam Input binding intercepts before it reaches the game at all. LB/RB
+                // and LT aren't used for anything else in this menu (this mod no longer cycles
+                // profiles from in-game, freeing the triggers up), so they're offered as
+                // alternative triggers rather than betting everything on X being fixable.
                 case Buttons.X:
+                case Buttons.LeftShoulder:
+                case Buttons.RightShoulder:
+                case Buttons.LeftTrigger:
                     if (this.currentlySnappedComponent != null)
                         this.RequestDelete(this.currentlySnappedComponent.myID);
                     return;
@@ -222,7 +231,7 @@ namespace StardewControllerMenu.Framework
                 return;
             }
 
-            if (key == Keys.Delete && this.currentlySnappedComponent != null)
+            if ((key == Keys.Delete || key == Keys.Back || key == Keys.OemMinus) && this.currentlySnappedComponent != null)
             {
                 this.RequestDelete(this.currentlySnappedComponent.myID);
                 return;
@@ -402,12 +411,12 @@ namespace StardewControllerMenu.Framework
             {
                 // The confirm instruction goes first (not the preset name) so truncation - if the
                 // name is long enough to need it - trims the name, not the part that matters most.
-                string confirmHint = TextLayout.FitToWidth($"A/Enter/click confirms deleting '{this.Rows[pendingIndex]}' - anything else cancels", this.width - 64);
+                string confirmHint = TextLayout.FitToWidth($"A/RT/Enter/click confirms deleting '{this.Rows[pendingIndex]}' - anything else cancels", this.width - 64);
                 Utility.drawTextWithShadow(b, confirmHint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Color.Red);
             }
             else
             {
-                string hintLine1 = TextLayout.FitToWidth("A/Enter/click: edit   Y: duplicate   X: delete", this.width - 64);
+                string hintLine1 = TextLayout.FitToWidth("A/Enter/click: edit   Y: duplicate   X/LB/RB/LT: delete", this.width - 64);
                 string hintLine2 = TextLayout.FitToWidth("(or right-click a row to delete it)   B: back", this.width - 64);
                 Utility.drawTextWithShadow(b, hintLine1, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 58), Game1.textColor);
                 Utility.drawTextWithShadow(b, hintLine2, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 36), Game1.textColor);

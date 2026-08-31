@@ -34,10 +34,10 @@ Switching preset writes the choice straight back to `config.json`, so it's remem
 | --- | --- |
 | A / `Enter` / click | Open the highlighted preset in the action-toggle editor (see below); on "+ New Preset", name a new one first |
 | Y | Duplicate the highlighted preset - name the copy, then it opens straight into editing |
-| X / right-click / `Delete` | Request deletion of the highlighted preset |
+| X / LB / RB / LT / right-click / `Delete`/`Backspace`/`-` | Request deletion of the highlighted preset |
 | B | Back to the Quick Menu |
 
-Deleting requires a second, *different* input on purpose: requesting one shows "A/Enter/click confirms deleting '\<name\>' - anything else cancels" - so a habitual repeat of whatever you just pressed can't delete something by accident. If the preset you delete was the active one, the Quick Menu falls back to "All".
+Deleting requires a second, *different* input on purpose: requesting one shows "A/RT/Enter/click confirms deleting '\<name\>' - anything else cancels" - so a habitual repeat of whatever you just pressed can't delete something by accident. Several buttons trigger the request for the same reason several trigger the confirm: gamepad button mapping can vary a lot depending on how a player's controller is configured (Steam Input, in particular, can remap or entirely intercept specific buttons before they ever reach the game), so rather than bet everything on one "correct" button, every un-conflicting button that could plausibly mean "delete" does. If the preset you delete was the active one, the Quick Menu falls back to "All".
 
 **Action-toggle editor** (`Framework/PresetEditMenu.cs`, reached by opening a preset from the manager): lists every individual action across every mod in the active profile with a checkbox, regardless of what's currently in the preset. Presets are built at the action level, not the whole-mod level - a preset can include just one specific action from a mod that has a dozen, without dragging the other eleven along.
 
@@ -46,10 +46,11 @@ Deleting requires a second, *different* input on purpose: requesting one shows "
 | D-pad / left stick | Move the selection (scrolls the same way the Quick Menu does) |
 | A / `Enter` / click | Toggle the highlighted action in/out of this preset |
 | Y / `P` | Save - writes the current checkboxes back to this preset's name and switches the Quick Menu to it |
-| X / right-click / `Delete` | Request deleting the *whole preset* being edited (not a single action) |
+| RT / `L` | Toggle whether deleting *this* preset is unlocked (see below) |
+| X / LB / RB / LT / right-click / `Delete`/`Backspace`/`-` | Request deleting the *whole preset* being edited (not a single action) - only takes effect once unlocked |
 | B | Cancel - discards any toggles made this visit; the preset keeps whatever it was before you opened the editor |
 
-Deleting from here works the same way as in the preset manager - X requests it, and confirming needs a different input (A/Enter/click) than what invoked it, so a habitual repeat press can't delete something by accident. This is a second way to delete a preset (alongside the one in the preset manager below), added because it's reachable from a screen where interaction was already working reliably.
+Deleting from here works the same way as in the preset manager - a request needs a separate, different input to confirm - plus one more layer on top: **deletion is locked by default every time this screen opens**, and RT (or `L`) has to unlock it first before a delete request does anything at all (locked, requesting just shows a message telling you to unlock it). This is a second, independent way to delete a preset alongside the one in the preset manager above, added because it's reachable from a screen where interaction was already confirmed working, and the extra lock exists because a request/confirm split alone still allows a single habitual button mash to get through if both inputs happen to be pressed close together.
 
 ## Profiles
 
@@ -168,7 +169,9 @@ Separately, checked `KeySender`'s actual behavior directly by reading the SMAPI 
 
 Delete via the preset manager still wasn't confirmed working even after the cursor-jump fix, so rather than keep chasing it in that screen, added a second, independent way to delete reachable from the action-toggle editor instead (X requests, A/Enter/click confirms, anything else cancels - same pattern, different screen) - a screen where interaction was already confirmed working, since actions could already be toggled in there with A. Both delete paths remain; this one's just easier to reach if the preset manager's own navigation is still giving trouble.
 
-What a compile check and this playtesting still don't cover: whether the XTest timing fix actually resolves triggering, whether the cursor-jump fix actually resolves delete via the preset manager, whether this new delete-from-editor path actually works, and whether the radial menu's direction math has its sign conventions right. All need another real test.
+Even the second, independent delete path still didn't work, and both share one thing: X is the "natural" button for requesting it, while A, Y, and B had all been separately confirmed working elsewhere (toggling actions with A, reaching the duplicate-naming prompt with Y, exiting menus with B). That's a specific signal rather than a general one - it points at X itself, not at delete's logic or this project's navigation code. The likely cause: a Steam Input binding (or an OS/Deck-level shortcut) intercepting X before it ever reaches the game, which no amount of fixing this mod's own button-handling code can work around. Rather than keep guessing at what X actually does on this setup, added several alternative triggers that don't conflict with anything else in either screen - LB, RB, and LT (this mod no longer cycles profiles in-game, so the triggers were free) alongside X for requesting, and RT alongside A for confirming - so the player isn't dependent on any single button turning out to work. Also added a deliberate extra layer on top, by request: deletion in the action-toggle editor is now locked every time the screen opens, and requires an explicit unlock (RT, or `L`) before a delete request does anything at all - on the reasoning that a request/confirm split alone still lets a single habitual button-mash through if both inputs land close together.
+
+What a compile check and this playtesting still don't cover: whether any of these alternative buttons actually reach the game when X doesn't, whether the XTest timing fix actually resolves triggering, whether the cursor-jump fix actually resolves the preset manager's own delete path, and whether the radial menu's direction math has its sign conventions right. All need another real test.
 
 ## Building
 
