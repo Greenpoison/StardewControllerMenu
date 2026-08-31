@@ -320,14 +320,21 @@ namespace StardewControllerMenu.Framework
             (string title, string status) = this.GetHeaderText();
             SpriteText.drawString(b, title, this.xPositionOnScreen + 32, this.yPositionOnScreen + TitleTop);
 
+            // Reserve space for the right-aligned counter (if it'll be drawn) before fitting the
+            // status text, so a long profile/preset name truncates with an ellipsis instead of
+            // running into the counter - they're drawn on the same line.
+            string counter = this.Rows.Count > VisibleRows
+                ? $"{this.ScrollOffset + 1}-{System.Math.Min(this.ScrollOffset + VisibleRows, this.Rows.Count)} of {this.Rows.Count}"
+                : null;
+            float counterReservedWidth = counter != null ? Game1.smallFont.MeasureString(counter).X + 24f : 0f;
+
             int titleHeight = SpriteText.getHeightOfString(title, 9999);
             int statusY = this.yPositionOnScreen + TitleTop + titleHeight + StatusGap;
-            status = TextLayout.FitToWidth(status, this.width - 64);
+            status = TextLayout.FitToWidth(status, this.width - 64 - counterReservedWidth);
             Utility.drawTextWithShadow(b, status, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, statusY), Game1.textColor);
 
-            if (this.Rows.Count > VisibleRows)
+            if (counter != null)
             {
-                string counter = $"{this.ScrollOffset + 1}-{System.Math.Min(this.ScrollOffset + VisibleRows, this.Rows.Count)} of {this.Rows.Count}";
                 Vector2 counterSize = Game1.smallFont.MeasureString(counter);
                 Utility.drawTextWithShadow(b, counter, Game1.smallFont, new Vector2(this.xPositionOnScreen + this.width - 32 - counterSize.X, statusY), Game1.textColor);
             }

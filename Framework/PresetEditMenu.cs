@@ -366,14 +366,23 @@ namespace StardewControllerMenu.Framework
             SpriteText.drawString(b, title, this.xPositionOnScreen + 32, this.yPositionOnScreen + 24);
 
             string lockLabel = this.IsProtected ? "[Built-in - can't be deleted]" : this.DeletionEnabled ? "[Deletion: UNLOCKED - LT deletes now!]" : "[Deletion: locked]";
-            string status = TextLayout.FitToWidth($"Editing: {this.PresetName}   ({this.Selected.Count} action(s) selected)   {lockLabel}", this.width - 64);
+
+            // Reserve space for the right-aligned counter (if it'll be drawn) before fitting the
+            // status text, so a long preset name + lock label truncates with an ellipsis instead of
+            // running into the counter - they're drawn on the same line. Adding the lock label made
+            // this line long enough that the two started visibly overlapping without this.
+            string counter = this.AllActions.Count > VisibleRows
+                ? $"{this.ScrollOffset + 1}-{System.Math.Min(this.ScrollOffset + VisibleRows, this.AllActions.Count)} of {this.AllActions.Count}"
+                : null;
+            float counterReservedWidth = counter != null ? Game1.smallFont.MeasureString(counter).X + 24f : 0f;
+
+            string status = TextLayout.FitToWidth($"Editing: {this.PresetName}   ({this.Selected.Count} action(s) selected)   {lockLabel}", this.width - 64 - counterReservedWidth);
             int titleHeight = SpriteText.getHeightOfString(title, 9999);
             int statusY = this.yPositionOnScreen + 24 + titleHeight + 4;
             Utility.drawTextWithShadow(b, status, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, statusY), this.DeletionEnabled ? Color.OrangeRed : Game1.textColor);
 
-            if (this.AllActions.Count > VisibleRows)
+            if (counter != null)
             {
-                string counter = $"{this.ScrollOffset + 1}-{System.Math.Min(this.ScrollOffset + VisibleRows, this.AllActions.Count)} of {this.AllActions.Count}";
                 Vector2 counterSize = Game1.smallFont.MeasureString(counter);
                 Utility.drawTextWithShadow(b, counter, Game1.smallFont, new Vector2(this.xPositionOnScreen + this.width - 32 - counterSize.X, statusY), Game1.textColor);
             }
