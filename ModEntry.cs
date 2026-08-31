@@ -1,3 +1,5 @@
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using StardewControllerMenu.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -9,6 +11,7 @@ namespace StardewControllerMenu
     {
         private ModConfig Config;
         private PresetManager Presets;
+        private RadialMenu ActiveRadialMenu;
 
         public override void Entry(IModHelper helper)
         {
@@ -18,6 +21,7 @@ namespace StardewControllerMenu
 
             helper.Events.GameLoop.GameLaunched += this.OnGameLaunched;
             helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
+            helper.Events.GameLoop.UpdateTicked += this.OnUpdateTicked;
         }
 
         private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
@@ -32,6 +36,57 @@ namespace StardewControllerMenu
 
             if (this.Config.OpenMenuButton.JustPressed())
                 Game1.activeClickableMenu = new QuickMenu(this.Helper, this.Config, this.Presets);
+        }
+
+        /// <summary>Drives the experimental radial menu: it needs per-tick polling (not just button-change events) to tell "held" from "just pressed" and to keep re-reading stick/mouse direction while it's open.</summary>
+        private void OnUpdateTicked(object sender, UpdateTickedEventArgs e)
+        {
+            if (!Context.IsWorldReady)
+                return;
+
+            SButtonState state = this.Config.RadialMenuButton.GetState();
+
+            if (this.ActiveRadialMenu == null)
+            {
+                if (state == SButtonState.Pressed && Game1.activeClickableMenu == null)
+                {
+                    var entries = this.Presets.GetActivePresetEntries(this.Config.ActivePreset);
+                    this.ActiveRadialMenu = new RadialMenu(entries);
+                    Game1.activeClickableMenu = this.ActiveRadialMenu;
+                }
+                return;
+            }
+
+            if (Game1.activeClickableMenu != this.ActiveRadialMenu)
+            {
+                // something else took over the menu slot (e.g. player paused) - drop our reference without touching activeClickableMenu
+                this.ActiveRadialMenu = null;
+                return;
+            }
+
+            if (state == SButtonState.Held || state == SButtonState.Pressed)
+            {
+                this.ActiveRadialMenu.UpdateDirection(this.GetRadialDirection());
+            }
+            else
+            {
+                this.ActiveRadialMenu.ActivateHighlighted();
+                Game1.exitActiveMenu();
+                this.ActiveRadialMenu = null;
+            }
+        }
+
+        /// <summary>Right stick tilt if present, else left stick, else mouse position relative to screen center. All converted to screen-space (y+ = down) for <see cref="RadialMenu.UpdateDirection"/>.</summary>
+        private Vector2 GetRadialDirection()
+        {
+            GamePadThumbSticks sticks = Game1.input.GetGamePadState().ThumbSticks;
+            Vector2 stick = sticks.Right.LengthSquared() > 0.1f ? sticks.Right : sticks.Left;
+            if (stick.LengthSquared() > 0.1f)
+                return new Vector2(stick.X, -stick.Y) * 200f; // stick space is y+ = up; flip to screen space and scale past the dead zone
+
+            Vector2 mouse = new(Game1.getMouseX(), Game1.getMouseY());
+            Vector2 center = new(Game1.uiViewport.Width / 2f, Game1.uiViewport.Height / 2f);
+            return mouse - center;
         }
     }
 }
