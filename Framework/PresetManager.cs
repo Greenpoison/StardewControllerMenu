@@ -11,6 +11,9 @@ namespace StardewControllerMenu.Framework
         private const string ProfilesFolder = "data/profiles";
         public const string DefaultProfileName = "Default";
 
+        /// <summary>Reserved preset name that always exists and can't be deleted - see <see cref="ModEntry"/>'s radial menu handling, which reads from this preset directly rather than from whatever's set as the active preset, so the radial menu's contents don't change just because the player switches presets in the Quick Menu.</summary>
+        public const string RadialPresetName = "Radial Menu";
+
         private readonly IModHelper Helper;
         private readonly IMonitor Monitor;
 
@@ -40,6 +43,12 @@ namespace StardewControllerMenu.Framework
                     this.Presets[preset.Name] = preset;
             }
 
+            // The radial preset always exists in memory, even before it's ever been saved, so it
+            // shows up in the preset manager and can be opened for editing right away rather than
+            // needing to be "created" first like a normal preset.
+            if (!this.Presets.ContainsKey(RadialPresetName))
+                this.Presets[RadialPresetName] = new Preset { Name = RadialPresetName, IncludedActionKeys = new List<string>() };
+
             this.Monitor.Log($"Loaded profile '{profileName}': {this.AllEntries.Count} mod entries, {this.Presets.Count} presets.", LogLevel.Trace);
         }
 
@@ -65,7 +74,11 @@ namespace StardewControllerMenu.Framework
             return result;
         }
 
-        public IEnumerable<string> GetPresetNames() => new[] { "All" }.Concat(this.Presets.Keys);
+        /// <summary>Preset names meant for the player-facing "active preset" selection (Quick Menu cycling, config validation) - deliberately excludes <see cref="RadialPresetName"/>, since that one is never meant to be cycled to or set as the active preset. Use <see cref="GetEditablePresetNames"/> to list every preset that can be opened for editing, radial included.</summary>
+        public IEnumerable<string> GetPresetNames() => new[] { "All" }.Concat(this.Presets.Keys.Where(name => name != RadialPresetName));
+
+        /// <summary>Every preset that can be opened in the action-toggle editor, including the reserved radial preset. Excludes "All", which isn't a real saved preset.</summary>
+        public IEnumerable<string> GetEditablePresetNames() => this.Presets.Keys;
 
         /// <summary>Create or overwrite a preset in the active profile from a set of action keys (see <see cref="ActionKey"/>) and save it to disk, so it can be built while playing.</summary>
         public void SavePreset(string name, IEnumerable<string> includedActionKeys)
@@ -75,9 +88,12 @@ namespace StardewControllerMenu.Framework
             this.Helper.Data.WriteJsonFile($"{ProfilesFolder}/{this.LoadedProfile}/presets/{SanitizeFileName(name)}.json", preset);
         }
 
-        /// <summary>Delete a preset from memory and disk. Returns false if no preset with that name exists.</summary>
+        /// <summary>Delete a preset from memory and disk. Returns false if no preset with that name exists, or if it's "All" or the reserved radial preset - enforced here too, not just in the menu that normally guards it, since a data-layer guard can't be bypassed by a future UI change that forgets to check. "All" isn't a real saved preset (see <see cref="GetActivePresetEntries"/>) so it could never actually be removed from <see cref="Presets"/> anyway, but this makes that explicit rather than relying on the dictionary lookup happening to fail.</summary>
         public bool DeletePreset(string name)
         {
+            if (name == RadialPresetName || name == "All")
+                return false;
+
             if (!this.Presets.Remove(name))
                 return false;
 

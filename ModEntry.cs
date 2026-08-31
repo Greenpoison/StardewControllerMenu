@@ -70,7 +70,10 @@ namespace StardewControllerMenu
             {
                 if (state == SButtonState.Pressed && Game1.activeClickableMenu == null)
                 {
-                    var entries = this.Presets.GetActivePresetEntries(this.Config.ActivePreset);
+                    // Deliberately not this.Config.ActivePreset - the radial menu always reads from
+                    // its own reserved preset (see PresetManager.RadialPresetName), so switching
+                    // presets in the Quick Menu never changes what's on the radial menu.
+                    var entries = this.Presets.GetActivePresetEntries(PresetManager.RadialPresetName);
                     this.ActiveRadialMenu = new RadialMenu(entries);
                     Game1.activeClickableMenu = this.ActiveRadialMenu;
                 }

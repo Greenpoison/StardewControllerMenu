@@ -11,7 +11,10 @@ using StardewValley.Menus;
 namespace StardewControllerMenu.Framework
 {
     /// <summary>
-    /// Lists every saved preset in the active profile, plus an option to create a new one.
+    /// Lists every saved preset in the active profile, plus an option to create a new one. This
+    /// includes <see cref="PresetManager.RadialPresetName"/>, the reserved preset that feeds the
+    /// radial menu - it's edited exactly like any other preset here, it just can't be deleted (see
+    /// <see cref="PresetEditMenu"/>).
     /// A: open the preset in <see cref="PresetEditMenu"/> to toggle its actions. Y: duplicate it (name
     /// the copy, then edit it). B: back to the quick menu. Deleting a preset isn't done from here -
     /// see <see cref="PresetEditMenu"/> (RT to unlock deletion, then LT to delete) - this menu used to
@@ -43,7 +46,7 @@ namespace StardewControllerMenu.Framework
             this.Presets = presets;
 
             this.Rows.Add(NewPresetLabel);
-            this.Rows.AddRange(this.Presets.GetPresetNames().Where(name => name != "All"));
+            this.Rows.AddRange(this.Presets.GetEditablePresetNames());
 
             for (int i = 0; i < this.Rows.Count; i++)
             {
@@ -245,7 +248,7 @@ namespace StardewControllerMenu.Framework
                 return;
             }
 
-            if (this.Presets.GetPresetNames().Contains(name))
+            if (name == "All" || this.Presets.GetEditablePresetNames().Contains(name))
             {
                 Game1.showRedMessage($"A preset named \"{name}\" already exists - pick a different name.");
                 Game1.activeClickableMenu = new PresetNamePrompt(

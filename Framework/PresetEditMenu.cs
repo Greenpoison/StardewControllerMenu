@@ -29,6 +29,12 @@ namespace StardewControllerMenu.Framework
     /// also now the *only* place a preset can be deleted from - the preset manager's own delete flow
     /// was removed once this one was confirmed working reliably, so there's one delete path instead
     /// of two overlapping ones.
+    ///
+    /// One preset - <see cref="PresetManager.RadialPresetName"/> - is exempt from deletion entirely
+    /// (<see cref="IsProtected"/>): it's the reserved preset the radial menu always reads from, edited
+    /// through this same screen with the same action checkboxes, just without any way to delete it -
+    /// RT/LT both just explain why instead of doing anything, and saving it doesn't switch the Quick
+    /// Menu's active preset the way saving a normal one does.
     /// </summary>
     public class PresetEditMenu : IClickableMenu
     {
@@ -37,6 +43,7 @@ namespace StardewControllerMenu.Framework
         private readonly PresetManager Presets;
         private readonly string PresetName;
         private readonly bool IsNewPreset;
+        private readonly bool IsProtected;
 
         private readonly List<(ModListing Mod, ModAction Action)> AllActions = new();
         private readonly List<ClickableComponent> RowComponents = new();
@@ -57,6 +64,7 @@ namespace StardewControllerMenu.Framework
             this.Presets = presets;
             this.PresetName = presetName;
             this.IsNewPreset = isNewPreset;
+            this.IsProtected = presetName == PresetManager.RadialPresetName;
 
             foreach (ModListing mod in this.Presets.GetAllEntries())
             {
@@ -168,7 +176,9 @@ namespace StardewControllerMenu.Framework
                     return;
 
                 case Buttons.LeftTrigger:
-                    if (this.DeletionEnabled)
+                    if (this.IsProtected)
+                        Game1.showRedMessage("The Radial Menu preset is built-in and can't be deleted.");
+                    else if (this.DeletionEnabled)
                         this.DeleteNow();
                     else
                         Game1.showRedMessage("Deletion is locked - press RT to unlock it first.");
@@ -210,7 +220,9 @@ namespace StardewControllerMenu.Framework
                 case Keys.Delete:
                 case Keys.Back:
                 case Keys.OemMinus:
-                    if (this.DeletionEnabled)
+                    if (this.IsProtected)
+                        Game1.showRedMessage("The Radial Menu preset is built-in and can't be deleted.");
+                    else if (this.DeletionEnabled)
                         this.DeleteNow();
                     else
                         Game1.showRedMessage("Deletion is locked - press RT (or L) to unlock it first.");
@@ -277,8 +289,16 @@ namespace StardewControllerMenu.Framework
         private void Save()
         {
             this.Presets.SavePreset(this.PresetName, this.Selected);
-            this.Config.ActivePreset = this.PresetName;
-            this.Helper.WriteConfig(this.Config);
+
+            // The radial preset is deliberately not switchable-to as the Quick Menu's active
+            // preset (see PresetManager.RadialPresetName) - saving it shouldn't have the side
+            // effect of silently switching the Quick Menu to show only radial-menu actions.
+            if (!this.IsProtected)
+            {
+                this.Config.ActivePreset = this.PresetName;
+                this.Helper.WriteConfig(this.Config);
+            }
+
             Game1.playSound("bigSelect");
             Game1.activeClickableMenu = new QuickMenu(this.Helper, this.Config, this.Presets);
         }
@@ -294,13 +314,27 @@ namespace StardewControllerMenu.Framework
 
         private void ToggleDeletionLock()
         {
+            if (this.IsProtected)
+            {
+                Game1.showRedMessage("The Radial Menu preset is built-in and can't be deleted.");
+                Game1.playSound("cancel");
+                return;
+            }
+
             this.DeletionEnabled = !this.DeletionEnabled;
             Game1.playSound(this.DeletionEnabled ? "coin" : "cancel");
         }
 
-        /// <summary>Deletes the preset being edited with no further confirmation - only reachable once <see cref="DeletionEnabled"/> is true, which is itself the deliberate, separate safety gate.</summary>
+        /// <summary>Deletes the preset being edited with no further confirmation - only reachable once <see cref="DeletionEnabled"/> is true, which is itself the deliberate, separate safety gate. <see cref="IsProtected"/> is also checked here (not just in <see cref="ToggleDeletionLock"/>, which is the only way DeletionEnabled should ever become true for a protected preset) as a second, independent guard - see the same reasoning on <see cref="PresetManager.DeletePreset"/>.</summary>
         private void DeleteNow()
         {
+            if (this.IsProtected)
+            {
+                Game1.showRedMessage("The Radial Menu preset is built-in and can't be deleted.");
+                Game1.playSound("cancel");
+                return;
+            }
+
             this.Presets.DeletePreset(this.PresetName);
 
             // Re-lock immediately: this menu closes right after anyway (a fresh PresetEditMenu
@@ -331,7 +365,7 @@ namespace StardewControllerMenu.Framework
             const string title = "Edit Preset";
             SpriteText.drawString(b, title, this.xPositionOnScreen + 32, this.yPositionOnScreen + 24);
 
-            string lockLabel = this.DeletionEnabled ? "[Deletion: UNLOCKED - LT deletes now!]" : "[Deletion: locked]";
+            string lockLabel = this.IsProtected ? "[Built-in - can't be deleted]" : this.DeletionEnabled ? "[Deletion: UNLOCKED - LT deletes now!]" : "[Deletion: locked]";
             string status = TextLayout.FitToWidth($"Editing: {this.PresetName}   ({this.Selected.Count} action(s) selected)   {lockLabel}", this.width - 64);
             int titleHeight = SpriteText.getHeightOfString(title, 9999);
             int statusY = this.yPositionOnScreen + 24 + titleHeight + 4;
@@ -363,9 +397,11 @@ namespace StardewControllerMenu.Framework
 
             string cancelHint = this.IsNewPreset ? "B: cancel (deletes this new preset)" : "B: cancel (discards changes)";
             string hintLine1 = TextLayout.FitToWidth($"A/Enter: toggle action   Y: save   {cancelHint}", this.width - 64);
-            string hintLine2 = this.DeletionEnabled
-                ? TextLayout.FitToWidth("RT: lock deletion again   LT: delete this preset IMMEDIATELY", this.width - 64)
-                : TextLayout.FitToWidth("RT: unlock deletion mode", this.width - 64);
+            string hintLine2 = this.IsProtected
+                ? TextLayout.FitToWidth("Built-in preset used by the radial menu - can't be deleted", this.width - 64)
+                : this.DeletionEnabled
+                    ? TextLayout.FitToWidth("RT: lock deletion again   LT: delete this preset IMMEDIATELY", this.width - 64)
+                    : TextLayout.FitToWidth("RT: unlock deletion mode", this.width - 64);
             Utility.drawTextWithShadow(b, hintLine1, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 58), Game1.textColor);
             Utility.drawTextWithShadow(b, hintLine2, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 36), this.DeletionEnabled ? Color.Red : Game1.textColor);
             this.drawMouse(b);
