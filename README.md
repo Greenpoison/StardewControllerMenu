@@ -72,7 +72,8 @@ When you select an entry, `Framework/KeySender.cs` simulates the real input, usi
 ## Roadmap
 
 - [x] Implement real keypress injection (`KeySender`) for Windows/Proton and native Linux
-- [ ] Validate `KeySender` against a real, running game (only reasoned through statically so far — see Testing below)
+- [x] Compile against the real game/SMAPI assemblies (see Testing below)
+- [ ] Run in-game on a real Steam Deck/PC and confirm `KeySender` actually triggers other mods
 - [ ] Simulate gamepad-button-only keybinds (needs a virtual controller driver)
 - [ ] In-game preset editor (add/remove entries from a preset without leaving the menu)
 - [ ] In-game profile switcher
@@ -80,7 +81,9 @@ When you select an entry, `Framework/KeySender.cs` simulates the real input, usi
 
 ## Testing
 
-This mod hasn't been built or run against a real Stardew Valley install yet — the `Pathoschild.Stardew.ModBuildConfig` package needs the game installed locally to resolve its assembly references, which isn't available in this dev environment. Build and test in-game before trusting `KeySender` for anything important.
+This project compiles cleanly against the real Stardew Valley 1.6.15 / SMAPI 4.5.2 assemblies (verified by building against copies of those DLLs directly, since this dev environment has no game install for `Pathoschild.Stardew.ModBuildConfig` to auto-detect). That caught two real bugs (missing `using` directives in `QuickMenu.cs`) before they ever reached a player.
+
+What that check does *not* cover: whether the game actually reacts the way `KeySender` expects at runtime — e.g. whether X11 `XTest` events reach the game window through gamescope's compositor on an actual Steam Deck. That needs an in-game test, which hasn't happened yet. Don't trust `KeySender` for anything important until someone's confirmed that in practice.
 
 ## Building
 
