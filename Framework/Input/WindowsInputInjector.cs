@@ -103,18 +103,32 @@ namespace StardewControllerMenu.Framework.Input
                     return;
             }
 
-            var inputs = new List<NativeInput>();
+            var downs = new List<NativeInput>();
             foreach (ushort vk in keyboardKeys)
-                inputs.Add(MakeKeyInput(vk, keyUp: false));
+                downs.Add(MakeKeyInput(vk, keyUp: false));
             foreach (SButton mouseButton in mouseButtons)
-                inputs.Add(MakeMouseInput(mouseButton, buttonUp: false));
+                downs.Add(MakeMouseInput(mouseButton, buttonUp: false));
 
+            var ups = new List<NativeInput>();
             for (int i = mouseButtons.Count - 1; i >= 0; i--)
-                inputs.Add(MakeMouseInput(mouseButtons[i], buttonUp: true));
+                ups.Add(MakeMouseInput(mouseButtons[i], buttonUp: true));
             for (int i = keyboardKeys.Count - 1; i >= 0; i--)
-                inputs.Add(MakeKeyInput(keyboardKeys[i], keyUp: true));
+                ups.Add(MakeKeyInput(keyboardKeys[i], keyUp: true));
 
-            SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf<NativeInput>());
+            SendInput((uint)downs.Count, downs.ToArray(), Marshal.SizeOf<NativeInput>());
+
+            // Unlike XTest, SendInput has no built-in event pacing, and releasing in the same
+            // batch as the press risked the same "too fast for the target's own input polling to
+            // observe" gotcha found on the X11 backend. A blocking Thread.Sleep here would stall
+            // the game's main thread (this runs on it), so the release is queued on a background
+            // task instead - SelectRow already reports success as soon as Send returns, which is
+            // reasonable here since SendInput queuing the press essentially never fails silently.
+            NativeInput[] upsArray = ups.ToArray();
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                await System.Threading.Tasks.Task.Delay(50);
+                SendInput((uint)upsArray.Length, upsArray, Marshal.SizeOf<NativeInput>());
+            });
         }
 
         private static NativeInput MakeKeyInput(ushort virtualKeyCode, bool keyUp)

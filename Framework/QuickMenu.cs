@@ -101,16 +101,21 @@ namespace StardewControllerMenu.Framework
             return TitleTop + titleHeight + StatusGap + statusHeight + ContentGap;
         }
 
-        /// <summary>Keep the snapped row scrolled into view, then position each row's clickable bounds for however it's currently scrolled - off-screen rows get moved out of click range instead of being drawn.</summary>
-        private void UpdateRowBounds()
+        /// <summary>
+        /// Keep the given row (the snapped one by default) scrolled into view, then position each
+        /// row's clickable bounds for however it's currently scrolled - off-screen rows get moved out
+        /// of click range instead of being drawn.
+        /// </summary>
+        /// <param name="ensureVisibleId">Scroll to keep this row's id visible instead of the currently snapped one - see <see cref="Move"/> for why that distinction matters.</param>
+        private void UpdateRowBounds(int? ensureVisibleId = null)
         {
-            if (this.currentlySnappedComponent != null)
+            int targetId = ensureVisibleId ?? this.currentlySnappedComponent?.myID ?? -1;
+            if (targetId >= 0)
             {
-                int snappedIndex = this.currentlySnappedComponent.myID;
-                if (snappedIndex < this.ScrollOffset)
-                    this.ScrollOffset = snappedIndex;
-                else if (snappedIndex >= this.ScrollOffset + VisibleRows)
-                    this.ScrollOffset = snappedIndex - VisibleRows + 1;
+                if (targetId < this.ScrollOffset)
+                    this.ScrollOffset = targetId;
+                else if (targetId >= this.ScrollOffset + VisibleRows)
+                    this.ScrollOffset = targetId - VisibleRows + 1;
             }
             this.ScrollOffset = System.Math.Clamp(this.ScrollOffset, 0, System.Math.Max(0, this.Rows.Count - VisibleRows));
 
@@ -245,8 +250,29 @@ namespace StardewControllerMenu.Framework
             // removes that second, uncontrollable path entirely.
         }
 
+        /// <summary>
+        /// applyMovementKey snaps the on-screen cursor to the target row's bounds as part of the same
+        /// call - if that row was still positioned off-screen (bounds (-10000,-10000,1,1), from the
+        /// last time the view was scrolled), the cursor jumps to those stale coordinates first, which
+        /// the game then clamps into the corner of the screen. Scrolling the target into view before
+        /// calling applyMovementKey, instead of only after, avoids that jump.
+        /// </summary>
         private void Move(int direction)
         {
+            if (this.currentlySnappedComponent != null)
+            {
+                int nextId = direction switch
+                {
+                    0 => this.currentlySnappedComponent.upNeighborID,
+                    1 => this.currentlySnappedComponent.rightNeighborID,
+                    2 => this.currentlySnappedComponent.downNeighborID,
+                    3 => this.currentlySnappedComponent.leftNeighborID,
+                    _ => -1
+                };
+                if (nextId >= 0)
+                    this.UpdateRowBounds(nextId);
+            }
+
             this.applyMovementKey(direction);
             this.UpdateRowBounds();
         }

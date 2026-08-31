@@ -86,10 +86,23 @@ namespace StardewControllerMenu.Framework.Input
             foreach (uint button in mouseButtons)
                 XTestFakeButtonEvent(this.Display, button, true, 0);
 
+            // A real gotcha: releasing immediately (delay 0) can be too fast for the target
+            // application's own input polling to ever observe the "down" state between an instant
+            // press and release. XTest's delay parameter is relative to the previous event and is
+            // paced by the X server itself once queued - not a blocking sleep on this thread - so
+            // holding the combo briefly before releasing costs nothing here.
+            const ulong holdMs = 50;
+            bool firstRelease = true;
             for (int i = mouseButtons.Count - 1; i >= 0; i--)
-                XTestFakeButtonEvent(this.Display, mouseButtons[i], false, 0);
+            {
+                XTestFakeButtonEvent(this.Display, mouseButtons[i], false, firstRelease ? holdMs : 0);
+                firstRelease = false;
+            }
             for (int i = keycodes.Count - 1; i >= 0; i--)
-                XTestFakeKeyEvent(this.Display, keycodes[i], false, 0);
+            {
+                XTestFakeKeyEvent(this.Display, keycodes[i], false, firstRelease ? holdMs : 0);
+                firstRelease = false;
+            }
 
             XFlush(this.Display);
         }

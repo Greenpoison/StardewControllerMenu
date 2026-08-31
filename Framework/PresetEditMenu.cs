@@ -77,15 +77,16 @@ namespace StardewControllerMenu.Framework
             this.UpdateRowBounds();
         }
 
-        private void UpdateRowBounds()
+        /// <param name="ensureVisibleId">Scroll to keep this row's id visible instead of the currently snapped one - see <see cref="Move"/> for why that distinction matters.</param>
+        private void UpdateRowBounds(int? ensureVisibleId = null)
         {
-            if (this.currentlySnappedComponent != null)
+            int targetId = ensureVisibleId ?? this.currentlySnappedComponent?.myID ?? -1;
+            if (targetId >= 0)
             {
-                int snappedIndex = this.currentlySnappedComponent.myID;
-                if (snappedIndex < this.ScrollOffset)
-                    this.ScrollOffset = snappedIndex;
-                else if (snappedIndex >= this.ScrollOffset + VisibleRows)
-                    this.ScrollOffset = snappedIndex - VisibleRows + 1;
+                if (targetId < this.ScrollOffset)
+                    this.ScrollOffset = targetId;
+                else if (targetId >= this.ScrollOffset + VisibleRows)
+                    this.ScrollOffset = targetId - VisibleRows + 1;
             }
             this.ScrollOffset = System.Math.Clamp(this.ScrollOffset, 0, System.Math.Max(0, this.AllActions.Count - VisibleRows));
 
@@ -198,8 +199,28 @@ namespace StardewControllerMenu.Framework
             // removes that second, uncontrollable path entirely.
         }
 
+        /// <summary>
+        /// applyMovementKey snaps the on-screen cursor to the target row's bounds as part of the same
+        /// call - if that row was still positioned off-screen (from the last time the view was
+        /// scrolled), the cursor jumps to those stale coordinates first. Scrolling the target into
+        /// view before calling applyMovementKey, instead of only after, avoids that jump.
+        /// </summary>
         private void Move(int direction)
         {
+            if (this.currentlySnappedComponent != null)
+            {
+                int nextId = direction switch
+                {
+                    0 => this.currentlySnappedComponent.upNeighborID,
+                    1 => this.currentlySnappedComponent.rightNeighborID,
+                    2 => this.currentlySnappedComponent.downNeighborID,
+                    3 => this.currentlySnappedComponent.leftNeighborID,
+                    _ => -1
+                };
+                if (nextId >= 0)
+                    this.UpdateRowBounds(nextId);
+            }
+
             this.applyMovementKey(direction);
             this.UpdateRowBounds();
         }
