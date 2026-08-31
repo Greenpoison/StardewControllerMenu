@@ -326,6 +326,12 @@ namespace StardewControllerMenu.Framework
         {
             this.Presets.DeletePreset(this.PresetName);
 
+            // Re-lock immediately: this menu closes right after anyway (a fresh PresetEditMenu
+            // always opens locked), but resetting explicitly here means the lock is never left
+            // unlocked even if a future change makes this method reachable without also closing
+            // the menu.
+            this.DeletionEnabled = false;
+
             if (this.Config.ActivePreset == this.PresetName)
             {
                 this.Config.ActivePreset = "All";
