@@ -7,7 +7,7 @@ Instead of binding every mod action to its own key, this mod gives you **one** b
 ## How it works
 
 1. After installing a mod, you (or the mod's installer/instructions) add an entry for it to your active profile's `entries.json` — the mod's name, its actions, the keybind for each action, and a short description of what it does.
-2. In-game, press the configured menu button (default: `LeftStick + RightStick`) to open the menu.
+2. In-game, press the configured menu button (default: `LeftShoulder + RightShoulder`) to open the menu.
 3. Navigate with the d-pad/left stick and press A (or click) on an entry. The mod simulates the real keypress/click that entry's keybind maps to, so the target mod reacts exactly as if you'd pressed it yourself.
 
 See [`example-setup/`](example-setup/) for a full, real-world example — a profile generated from an actual 200+ mod Steam Deck install.
@@ -16,9 +16,10 @@ See [`example-setup/`](example-setup/) for a full, real-world example — a prof
 
 | Button | Action |
 | --- | --- |
+| D-pad / left stick | Move the selection (scrolls automatically once the list is longer than one screen) |
 | A / click | Trigger the selected entry (or, in edit mode, toggle its mod in/out of the preset being built) |
 | X / `E` | Enter or leave preset-build mode |
-| Y / `S` | Save the preset being built (opens a naming prompt) - only while in edit mode |
+| Y / `P` | Save the preset being built (opens a naming prompt with a Cancel option) - only while in edit mode |
 | LB / RB, `[` / `]` | Cycle to the previous/next preset in the current profile |
 | LT / RT, `Page Up` / `Page Down` | Cycle to the previous/next profile |
 
@@ -101,14 +102,22 @@ When you select an entry, `Framework/KeySender.cs` simulates the real input, usi
 - [x] In-game preset editor (build a preset by toggling mods on/off, then save it, without leaving the menu)
 - [x] In-game profile switcher (cycle profiles from the menu; persists to `config.json`)
 - [x] Radial menu prototype (see "Radial menu (experimental)" above) - compiles, not yet verified in-game
-- [ ] Run in-game on a real Steam Deck/PC and confirm `KeySender`, the preset editor, the profile switcher, and the radial menu's direction math all actually work
+- [x] First real in-game test - found and fixed the chat-opening conflict, broken D-pad navigation, the uncancelable naming prompt, and text/scrolling overflow (see Testing below)
+- [ ] Confirm the fixes above actually resolved things on a second real playtest, and specifically verify `KeySender` triggers other mods and the radial menu's direction math is correct
 - [ ] Decide whether the radial menu needs its own on/off setting and a dedicated small preset (a dozen-mod "All" view makes for very cramped wedges), or should stay a `RadialMenuButton`-gated experiment
 
 ## Testing
 
 This project compiles cleanly against the real Stardew Valley 1.6.15 / SMAPI 4.5.2 assemblies (verified by building against copies of those DLLs directly, since this dev environment has no game install for `Pathoschild.Stardew.ModBuildConfig` to auto-detect). That caught two real bugs (missing `using` directives in `QuickMenu.cs`) before they ever reached a player.
 
-What that check does *not* cover: whether the game actually reacts the way `KeySender` expects at runtime — e.g. whether X11 `XTest` events reach the game window through gamescope's compositor on an actual Steam Deck. That needs an in-game test, which hasn't happened yet. Don't trust `KeySender` for anything important until someone's confirmed that in practice.
+A compile check can't catch everything a real playtest does, though. The first actual in-game run surfaced several real bugs, found by decompiling the game's own `IClickableMenu`/`Game1`/`NamingMenu` classes rather than guessing twice:
+
+- **Opening the menu also opened chat.** Turned out `RightStick` click has a hardcoded vanilla behavior (open chat on a quick press, the emote wheel on a long hold) that reads `GamePadState` directly and bypasses SMAPI's input suppression entirely - not fixable by suppressing the button. Fixed by moving `OpenMenuButton`'s default off any stick click and back to `LeftShoulder + RightShoulder`, now paired with `SuppressActiveKeybinds` so it doesn't also fire another mod bound to the same combo (which *is* a suppressible, SMAPI-mediated conflict, unlike the stick one).
+- **D-pad/stick navigation didn't move the selection at all.** `IClickableMenu.receiveGamePadButton` and `gamePadButtonHeld` are both no-op stubs in the base class - every vanilla menu wires its own snap navigation by calling `applyMovementKey`, and `QuickMenu` never did. Fixed by handling D-pad and left-thumbstick directions explicitly, with throttled auto-repeat while held. Separately, the keyboard shortcut for "save preset" was bound to `S` - the default vanilla move-down key - which unconditionally swallowed that keypress before the base class's own keyboard navigation could see it; moved to `P`.
+- **Couldn't cancel out of naming a new preset.** The game's own `NamingMenu` has no cancel path at all by design (it's built for mandatory naming, like naming a pet) - confirmed by decompiling it. Replaced with `Framework/PresetNamePrompt.cs`, a minimal from-scratch prompt with working Escape/B/Cancel-button handling.
+- **Text spilled outside the menu, and long lists overlapped the control hints.** There was no scrolling and no width limit on labels - fine for a handful of entries, but a real ~27-mod profile produces 60-90 rows. Added a 7-row scrolling window that follows the selection, an "X-Y of Z" counter, and label truncation with an ellipsis so nothing draws past the menu's edge.
+
+What a compile check and this first playtest still don't cover: whether `KeySender`'s X11 `XTest` calls actually reach the game window through gamescope's compositor, and whether the radial menu's direction math has its sign conventions right. Both need another real test.
 
 ## Building
 

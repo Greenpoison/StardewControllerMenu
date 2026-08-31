@@ -35,7 +35,14 @@ namespace StardewControllerMenu
                 return;
 
             if (this.Config.OpenMenuButton.JustPressed())
+            {
+                // Prevents another mod bound to the same combo (see the example-setup README for a
+                // real one) from also reacting this tick. Doesn't help against a hardcoded vanilla
+                // behavior on the same button - that's the actual reason OpenMenuButton avoids stick
+                // clicks by default, since SuppressActiveKeybinds can't reach those.
+                this.Helper.Input.SuppressActiveKeybinds(this.Config.OpenMenuButton);
                 Game1.activeClickableMenu = new QuickMenu(this.Helper, this.Config, this.Presets);
+            }
         }
 
         /// <summary>Drives the experimental radial menu: it needs per-tick polling (not just button-change events) to tell "held" from "just pressed" and to keep re-reading stick/mouse direction while it's open.</summary>
