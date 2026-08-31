@@ -34,23 +34,22 @@ Switching preset writes the choice straight back to `config.json`, so it's remem
 | --- | --- |
 | A / `Enter` / click | Open the highlighted preset in the action-toggle editor (see below); on "+ New Preset", name a new one first |
 | Y | Duplicate the highlighted preset - name the copy, then it opens straight into editing |
-| X / LB / RB / LT / right-click / `Delete`/`Backspace`/`-` | Request deletion of the highlighted preset |
 | B | Back to the Quick Menu |
 
-Deleting requires a second, *different* input on purpose: requesting one shows "A/RT/Enter/click confirms deleting '\<name\>' - anything else cancels" - so a habitual repeat of whatever you just pressed can't delete something by accident. Several buttons trigger the request for the same reason several trigger the confirm: gamepad button mapping can vary a lot depending on how a player's controller is configured (Steam Input, in particular, can remap or entirely intercept specific buttons before they ever reach the game), so rather than bet everything on one "correct" button, every un-conflicting button that could plausibly mean "delete" does. If the preset you delete was the active one, the Quick Menu falls back to "All".
+Deleting a preset isn't done from this screen - open it in the action-toggle editor below and delete it from there. This menu used to have its own separate request/confirm delete flow, but it overlapped with the editor's and was removed once the editor's flow was confirmed working reliably - one delete path instead of two.
 
 **Action-toggle editor** (`Framework/PresetEditMenu.cs`, reached by opening a preset from the manager): lists every individual action across every mod in the active profile with a checkbox, regardless of what's currently in the preset. Presets are built at the action level, not the whole-mod level - a preset can include just one specific action from a mod that has a dozen, without dragging the other eleven along.
 
 | Button | Action |
 | --- | --- |
 | D-pad / left stick | Move the selection (scrolls the same way the Quick Menu does) |
-| A / `Enter` / click | **Locked:** toggle the highlighted action in/out of this preset. **Unlocked:** delete the whole preset immediately |
+| A / `Enter` / click | Toggle the highlighted action in/out of this preset |
 | Y / `P` | Save - writes the current checkboxes back to this preset's name and switches the Quick Menu to it |
 | RT / `L` | Toggle whether deleting *this* preset is unlocked (see below) |
-| X / LB / RB / LT / right-click / `Delete`/`Backspace`/`-` | Only does anything once unlocked: deletes the *whole preset* being edited (not a single action) immediately, no further confirmation |
+| LT / `Delete`/`Backspace`/`-` | Only does anything once unlocked: deletes the *whole preset* being edited (not a single action) immediately, no further confirmation |
 | B | Cancel - discards any toggles made this visit; the preset keeps whatever it was before you opened the editor |
 
-Deleting from here is a second, independent way to delete a preset alongside the request/confirm flow in the preset manager above, added because it's reachable from a screen where interaction was already confirmed working. It uses a different safety model, though: **deletion is locked by default every time this screen opens**, and RT (or `L`) has to unlock it first (locked, any of the delete buttons just shows a message telling you to unlock it). Once unlocked, any of the delete buttons - including A, which normally just toggles an action - deletes immediately with no separate confirmation step. This replaced an earlier request-then-confirm design layered on top of the same lock: in testing, the lock toggle itself worked reliably, but no button reliably triggered the confirm step afterwards, and by that point the lock was already doing the job a confirm step is for (a deliberate, distinct action before anything destructive can happen) - so the redundant second step was dropped rather than debugged further.
+This is now the only place a preset can be deleted from. **Deletion is locked by default every time this screen opens**, and RT (or `L`) has to unlock it first - locked, LT just shows a message telling you to unlock it first. Once unlocked, LT deletes immediately with no separate confirmation step; A keeps its normal job (toggling an action) regardless of the lock state, so there's no risk of an accidental A press deleting anything. This replaced an earlier design where several buttons (X/LB/RB/LT/right-click, and A too once unlocked) all triggered the same delete, layered under a request-then-confirm step on top of the lock: in testing, the lock toggle worked reliably, but no button reliably triggered the confirm step afterwards, and by that point the lock was already doing the job a confirm step is for (a deliberate, distinct action before anything destructive can happen) - so both the confirm step and the extra alternative buttons were dropped in favor of one dedicated button (LT) for one dedicated job.
 
 ## Profiles
 
@@ -175,7 +174,9 @@ The lock toggle (RT/`L`) itself was then confirmed working reliably - it visibly
 
 Deleting also now explicitly re-locks (`DeletionEnabled = false`) as part of the same method that deletes, rather than relying only on the fact that the menu closes right afterward (a fresh `PresetEditMenu` always opens locked anyway) - belt-and-braces so the lock can never be left in the unlocked state, even if a future change made this method reachable without also closing the menu.
 
-What a compile check and this playtesting still don't cover: whether the immediate-delete-once-unlocked flow actually fires now, whether any of the non-A delete buttons (X/LB/RB/LT/right-click) reach the game at all on this setup, whether the XTest timing fix actually resolves triggering, whether the cursor-jump fix actually resolves the preset manager's own request/confirm delete path, and whether the radial menu's direction math has its sign conventions right. All need another real test.
+RT-then-A confirmed working - unlocking and deleting worked, but only from inside the action-toggle editor for that specific preset, which is exactly the one place it's meant to work. With that confirmed reliable, simplified further per request: the preset manager's own separate delete flow (X/LB/RB/LT/right-click to request, A/RT/Enter/click to confirm) was removed entirely, since it's now a redundant, less-reliable second way to do the same thing. The action-toggle editor is the single remaining place to delete a preset, and its own controls were narrowed to one dedicated button per job instead of several alternatives standing in for each other: RT unlocks, LT deletes immediately once unlocked, and A goes back to only ever toggling an action (it no longer doubles as a delete trigger when unlocked). The several alternative delete buttons added earlier while X's reliability was still in question (X/LB/RB/right-click) are gone now that a specific working combination is confirmed.
+
+What a compile check and this playtesting still don't cover: whether LT reliably deletes across other presets and other sessions (confirmed for one so far), whether the XTest timing fix actually resolves triggering, and whether the radial menu's direction math has its sign conventions right. All need another real test.
 
 ## Building
 

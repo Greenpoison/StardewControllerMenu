@@ -13,9 +13,10 @@ namespace StardewControllerMenu.Framework
     /// <summary>
     /// Lists every saved preset in the active profile, plus an option to create a new one.
     /// A: open the preset in <see cref="PresetEditMenu"/> to toggle its actions. Y: duplicate it (name
-    /// the copy, then edit it). X: request deletion - a separate confirmation step follows, using a
-    /// different button than X on purpose, so you can't delete something by pressing the same button
-    /// twice out of habit. B: back to the quick menu.
+    /// the copy, then edit it). B: back to the quick menu. Deleting a preset isn't done from here -
+    /// see <see cref="PresetEditMenu"/> (RT to unlock deletion, then LT to delete) - this menu used to
+    /// have its own separate request/confirm delete flow, but it overlapped with that one and was
+    /// removed once the edit menu's flow was confirmed working reliably.
     /// </summary>
     public class PresetManagerMenu : IClickableMenu
     {
@@ -27,9 +28,6 @@ namespace StardewControllerMenu.Framework
 
         private readonly List<string> Rows = new();
         private readonly List<ClickableComponent> RowComponents = new();
-
-        /// <summary>Index into <see cref="Rows"/> awaiting delete confirmation, or null if nothing is pending.</summary>
-        private int? PendingDeleteIndex;
 
         private int ScrollOffset;
 
@@ -91,36 +89,11 @@ namespace StardewControllerMenu.Framework
         {
             base.receiveLeftClick(x, y, playSound);
 
-            if (this.PendingDeleteIndex is int pendingIndex)
-            {
-                this.ConfirmDelete(pendingIndex);
-                return;
-            }
-
             for (int i = 0; i < this.RowComponents.Count; i++)
             {
                 if (this.RowComponents[i].containsPoint(x, y))
                 {
                     this.Select(i);
-                    return;
-                }
-            }
-        }
-
-        /// <summary>Right-click requests deletion, mirroring gamepad X - there was previously no mouse/touch way to request one at all, only the gamepad button.</summary>
-        public override void receiveRightClick(int x, int y, bool playSound = true)
-        {
-            if (this.PendingDeleteIndex != null)
-            {
-                this.CancelPendingDelete();
-                return;
-            }
-
-            for (int i = 0; i < this.RowComponents.Count; i++)
-            {
-                if (this.RowComponents[i].containsPoint(x, y))
-                {
-                    this.RequestDelete(i);
                     return;
                 }
             }
@@ -152,15 +125,6 @@ namespace StardewControllerMenu.Framework
 
         public override void receiveGamePadButton(Buttons button)
         {
-            if (this.PendingDeleteIndex is int pendingIndex)
-            {
-                if (button == Buttons.A || button == Buttons.RightTrigger)
-                    this.ConfirmDelete(pendingIndex);
-                else
-                    this.CancelPendingDelete();
-                return;
-            }
-
             if (DirectionOf(button) is int direction)
             {
                 this.Move(direction);
@@ -179,20 +143,6 @@ namespace StardewControllerMenu.Framework
                         this.Duplicate(this.currentlySnappedComponent.myID);
                     return;
 
-                // X is the "natural" button for this, but A/Y/B have all been confirmed working
-                // for this player while X and delete specifically have not - possibly a button
-                // that a Steam Input binding intercepts before it reaches the game at all. LB/RB
-                // and LT aren't used for anything else in this menu (this mod no longer cycles
-                // profiles from in-game, freeing the triggers up), so they're offered as
-                // alternative triggers rather than betting everything on X being fixable.
-                case Buttons.X:
-                case Buttons.LeftShoulder:
-                case Buttons.RightShoulder:
-                case Buttons.LeftTrigger:
-                    if (this.currentlySnappedComponent != null)
-                        this.RequestDelete(this.currentlySnappedComponent.myID);
-                    return;
-
                 case Buttons.B:
                     this.Close();
                     return;
@@ -203,15 +153,6 @@ namespace StardewControllerMenu.Framework
 
         public override void receiveKeyPress(Keys key)
         {
-            if (this.PendingDeleteIndex is int pendingIndex)
-            {
-                if (key == Keys.Enter)
-                    this.ConfirmDelete(pendingIndex);
-                else
-                    this.CancelPendingDelete();
-                return;
-            }
-
             if (DirectionOf(key) is int direction)
             {
                 this.Move(direction);
@@ -228,12 +169,6 @@ namespace StardewControllerMenu.Framework
             if (key == Keys.Escape)
             {
                 this.Close();
-                return;
-            }
-
-            if ((key == Keys.Delete || key == Keys.Back || key == Keys.OemMinus) && this.currentlySnappedComponent != null)
-            {
-                this.RequestDelete(this.currentlySnappedComponent.myID);
                 return;
             }
 
@@ -331,42 +266,6 @@ namespace StardewControllerMenu.Framework
             return mods.SelectMany(mod => mod.Actions.Select(action => ActionKey.Of(mod.ModName, action.Name)));
         }
 
-        private void RequestDelete(int index)
-        {
-            if (index < 0 || index >= this.Rows.Count || this.Rows[index] == NewPresetLabel)
-                return;
-
-            this.PendingDeleteIndex = index;
-            Game1.playSound("cancel");
-        }
-
-        private void ConfirmDelete(int index)
-        {
-            if (index < 0 || index >= this.Rows.Count)
-            {
-                this.PendingDeleteIndex = null;
-                return;
-            }
-
-            string name = this.Rows[index];
-            this.Presets.DeletePreset(name);
-
-            if (this.Config.ActivePreset == name)
-            {
-                this.Config.ActivePreset = "All";
-                this.Helper.WriteConfig(this.Config);
-            }
-
-            Game1.playSound("bigDeSelect");
-            this.ReturnToSelf();
-        }
-
-        private void CancelPendingDelete()
-        {
-            this.PendingDeleteIndex = null;
-            Game1.playSound("smallSelect");
-        }
-
         private void ReturnToSelf()
         {
             Game1.activeClickableMenu = new PresetManagerMenu(this.Helper, this.Config, this.Presets);
@@ -396,31 +295,16 @@ namespace StardewControllerMenu.Framework
             for (int i = this.ScrollOffset; i < System.Math.Min(this.ScrollOffset + VisibleRows, this.Rows.Count); i++)
             {
                 ClickableComponent row = this.RowComponents[i];
-                bool isPendingDelete = this.PendingDeleteIndex == i;
                 bool isSnapped = this.currentlySnappedComponent == row;
-                if (isPendingDelete)
-                    b.Draw(Game1.staminaRect, row.bounds, Color.Red * 0.5f);
-                else if (isSnapped)
+                if (isSnapped)
                     b.Draw(Game1.staminaRect, row.bounds, Color.Wheat * 0.6f);
 
                 string label = TextLayout.FitToWidth(this.Rows[i], this.width - 64 - 96);
                 Utility.drawTextWithShadow(b, label, Game1.smallFont, new Vector2(row.bounds.X + 8, row.bounds.Y + 8), Game1.textColor);
             }
 
-            if (this.PendingDeleteIndex is int pendingIndex)
-            {
-                // The confirm instruction goes first (not the preset name) so truncation - if the
-                // name is long enough to need it - trims the name, not the part that matters most.
-                string confirmHint = TextLayout.FitToWidth($"A/RT/Enter/click confirms deleting '{this.Rows[pendingIndex]}' - anything else cancels", this.width - 64);
-                Utility.drawTextWithShadow(b, confirmHint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Color.Red);
-            }
-            else
-            {
-                string hintLine1 = TextLayout.FitToWidth("A/Enter/click: edit   Y: duplicate   X/LB/RB/LT: delete", this.width - 64);
-                string hintLine2 = TextLayout.FitToWidth("(or right-click a row to delete it)   B: back", this.width - 64);
-                Utility.drawTextWithShadow(b, hintLine1, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 58), Game1.textColor);
-                Utility.drawTextWithShadow(b, hintLine2, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 36), Game1.textColor);
-            }
+            string hint = TextLayout.FitToWidth("A/Enter/click: edit (RT then LT deletes from there)   Y: duplicate   B: back", this.width - 64);
+            Utility.drawTextWithShadow(b, hint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Game1.textColor);
 
             this.drawMouse(b);
         }
