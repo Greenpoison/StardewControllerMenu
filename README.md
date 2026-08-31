@@ -12,6 +12,18 @@ Instead of binding every mod action to its own key, this mod gives you **one** b
 
 See [`example-setup/`](example-setup/) for a full, real-world example — a profile generated from an actual 200+ mod Steam Deck install.
 
+### Menu controls
+
+| Button | Action |
+| --- | --- |
+| A / click | Trigger the selected entry (or, in edit mode, toggle its mod in/out of the preset being built) |
+| X / `E` | Enter or leave preset-build mode |
+| Y / `S` | Save the preset being built (opens a naming prompt) - only while in edit mode |
+| LB / RB, `[` / `]` | Cycle to the previous/next preset in the current profile |
+| LT / RT, `Page Up` / `Page Down` | Cycle to the previous/next profile |
+
+Switching preset or profile from the menu writes the choice straight back to `config.json`, so it's remembered next session too.
+
 ## Profiles
 
 Every setting lives under a **profile**: a named folder of `entries.json` + `presets/`. This is meant for players who swap modpacks often — keep one profile per modpack, and switch by editing `ActiveProfile` in `config.json` (or by installing several profiles ahead of time and toggling between them at the start of a session).
@@ -58,7 +70,7 @@ Within a profile, every player has a default "All" view showing every entry. You
 }
 ```
 
-Set `ActivePreset` in `config.json` to switch which preset is shown by default; the goal is to make switching between presets fast enough to do mid-session.
+Set `ActivePreset` in `config.json` to switch which preset is shown by default, or switch it live from the menu itself (see Menu controls above) - building and saving a new preset without leaving the game is the actual goal here, not just editing JSON between sessions.
 
 ## Triggering the actual keybind
 
@@ -73,10 +85,10 @@ When you select an entry, `Framework/KeySender.cs` simulates the real input, usi
 
 - [x] Implement real keypress injection (`KeySender`) for Windows/Proton and native Linux
 - [x] Compile against the real game/SMAPI assemblies (see Testing below)
-- [ ] Run in-game on a real Steam Deck/PC and confirm `KeySender` actually triggers other mods
+- [x] In-game preset editor (build a preset by toggling mods on/off, then save it, without leaving the menu)
+- [x] In-game profile switcher (cycle profiles from the menu; persists to `config.json`)
+- [ ] Run in-game on a real Steam Deck/PC and confirm `KeySender`, the preset editor, and the profile switcher all actually work
 - [ ] Simulate gamepad-button-only keybinds (needs a virtual controller driver)
-- [ ] In-game preset editor (add/remove entries from a preset without leaving the menu)
-- [ ] In-game profile switcher
 - [ ] Radial menu mode: hold a button to pop up a radial menu of a preset's entries for quick execution, release to select
 
 ## Testing

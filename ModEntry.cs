@@ -31,10 +31,7 @@ namespace StardewControllerMenu
                 return;
 
             if (this.Config.OpenMenuButton.JustPressed())
-            {
-                var entries = this.Presets.GetActivePresetEntries(this.Config.ActivePreset);
-                Game1.activeClickableMenu = new QuickMenu(entries);
-            }
+                Game1.activeClickableMenu = new QuickMenu(this.Helper, this.Config, this.Presets);
         }
     }
 }
