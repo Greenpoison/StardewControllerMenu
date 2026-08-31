@@ -79,7 +79,7 @@ When you select an entry, `Framework/KeySender.cs` simulates the real input, usi
 - **Windows** (including Steam Deck players running the Windows build of the game via Proton): uses the Win32 `SendInput` API, the same mechanism real Windows automation tools use. This works under Wine/Proton because Wine implements the same `user32.dll` entry point for compatibility.
 - **Native Linux** (e.g. Steam Deck running the Linux build of the game — this is what my own Deck runs): uses the X11 `XTest` extension, which works when the game's window is on an X11 or XWayland display (the normal case under gamescope).
 
-**Known limitation:** neither backend can simulate a *gamepad* button press — there's no portable equivalent of `SendInput`/`XTest` for joystick input on either platform. When a keybind lists multiple alternatives (e.g. `"F, ControllerBack"`), `KeySender` picks whichever alternative it can actually send; if every alternative requires a controller button, it logs a warning instead of silently doing nothing. Real gamepad-button injection (via a virtual controller driver) is a possible future improvement, not yet implemented.
+**Known limitation:** neither backend can simulate a *gamepad* button press (an `SButton` like `ControllerA` or `LeftShoulder`, which SMAPI reads from the real `GamePadState`) — there's no portable equivalent of `SendInput`/`XTest` for joystick input on either platform. This only matters if a mod's keybind requires a controller button with no keyboard/mouse alternative. It does *not* apply to a controller button that Steam Input (or similar) remaps to emit a keyboard key - that arrives as a genuine keyboard event before it ever reaches the game, same as anything `KeySender` sends. When a keybind lists multiple alternatives (e.g. `"F, ControllerBack"`), `KeySender` picks whichever it can actually send; if every alternative requires a controller button, it logs a warning instead of silently doing nothing. In the real 27-mod scan under `example-setup/`, only two actions hit this - and both have a working keyboard-bound duplicate anyway.
 
 ## Roadmap
 
@@ -88,7 +88,6 @@ When you select an entry, `Framework/KeySender.cs` simulates the real input, usi
 - [x] In-game preset editor (build a preset by toggling mods on/off, then save it, without leaving the menu)
 - [x] In-game profile switcher (cycle profiles from the menu; persists to `config.json`)
 - [ ] Run in-game on a real Steam Deck/PC and confirm `KeySender`, the preset editor, and the profile switcher all actually work
-- [ ] Simulate gamepad-button-only keybinds (needs a virtual controller driver)
 - [ ] Radial menu mode: hold a button to pop up a radial menu of a preset's entries for quick execution, release to select
 
 ## Testing
