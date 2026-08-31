@@ -208,6 +208,13 @@ namespace StardewControllerMenu.Framework
                 return;
             }
 
+            // Enter mirrors A - see the same fallback in QuickMenu.receiveKeyPress for why.
+            if (key == Keys.Enter && this.currentlySnappedComponent != null)
+            {
+                this.Select(this.currentlySnappedComponent.myID);
+                return;
+            }
+
             if (key == Keys.Escape)
             {
                 this.Close();
@@ -366,16 +373,24 @@ namespace StardewControllerMenu.Framework
                 else if (isSnapped)
                     b.Draw(Game1.staminaRect, row.bounds, Color.Wheat * 0.6f);
 
-                string label = TextLayout.FitToWidth(this.Rows[i], this.width - 64 - 16);
+                string label = TextLayout.FitToWidth(this.Rows[i], this.width - 64 - 96);
                 Utility.drawTextWithShadow(b, label, Game1.smallFont, new Vector2(row.bounds.X + 8, row.bounds.Y + 8), Game1.textColor);
             }
 
-            string hint = this.PendingDeleteIndex is int pendingIndex
-                ? $"Delete '{this.Rows[pendingIndex]}'? Press A (or click) to confirm - any other input cancels."
-                : "A/click: edit actions   Y: duplicate   X/right-click: delete   B: back";
-            hint = TextLayout.FitToWidth(hint, this.width - 64);
-            Color hintColor = this.PendingDeleteIndex != null ? Color.Red : Game1.textColor;
-            Utility.drawTextWithShadow(b, hint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), hintColor);
+            if (this.PendingDeleteIndex is int pendingIndex)
+            {
+                // The confirm instruction goes first (not the preset name) so truncation - if the
+                // name is long enough to need it - trims the name, not the part that matters most.
+                string confirmHint = TextLayout.FitToWidth($"A/Enter/click confirms deleting '{this.Rows[pendingIndex]}' - anything else cancels", this.width - 64);
+                Utility.drawTextWithShadow(b, confirmHint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Color.Red);
+            }
+            else
+            {
+                string hintLine1 = TextLayout.FitToWidth("A/Enter/click: edit   Y: duplicate   X: delete", this.width - 64);
+                string hintLine2 = TextLayout.FitToWidth("(or right-click a row to delete it)   B: back", this.width - 64);
+                Utility.drawTextWithShadow(b, hintLine1, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 58), Game1.textColor);
+                Utility.drawTextWithShadow(b, hintLine2, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 36), Game1.textColor);
+            }
 
             this.drawMouse(b);
         }

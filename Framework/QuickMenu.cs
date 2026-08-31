@@ -207,6 +207,16 @@ namespace StardewControllerMenu.Framework
 
             switch (key)
             {
+                // Enter mirrors A: if a controller's Steam Input profile maps its face buttons to
+                // keyboard keys rather than passing through raw gamepad button presses (plausible -
+                // this player's own mods are triggered that way), A would never reach
+                // receiveGamePadButton at all. Enter is the most common "confirm" key such a mapping
+                // would use, so it's handled here as a fallback rather than assumed unnecessary.
+                case Keys.Enter:
+                    if (this.currentlySnappedComponent != null)
+                        this.SelectRow(this.currentlySnappedComponent.myID);
+                    return;
+
                 case Keys.OemCloseBrackets:
                     this.CyclePreset(1);
                     return;
@@ -296,7 +306,9 @@ namespace StardewControllerMenu.Framework
                 Utility.drawTextWithShadow(b, counter, Game1.smallFont, new Vector2(this.xPositionOnScreen + this.width - 32 - counterSize.X, statusY), Game1.textColor);
             }
 
-            float maxLabelWidth = this.width - 64 - 16;
+            // A generous safety margin beyond the row's own bounds - reported clipping suggests
+            // Game1.smallFont.MeasureString and the actual drawn width may not agree exactly here.
+            float maxLabelWidth = this.width - 64 - 96;
             for (int i = this.ScrollOffset; i < System.Math.Min(this.ScrollOffset + VisibleRows, this.Rows.Count); i++)
             {
                 (ModListing mod, ModAction action) = this.Rows[i];
@@ -313,7 +325,7 @@ namespace StardewControllerMenu.Framework
             // Two short lines rather than one long one - a single line listing every control
             // routinely overflowed the box's width once drawn.
             float maxHintWidth = this.width - 64;
-            string hintLine1 = TextLayout.FitToWidth("A: trigger   X: manage presets   LB/RB: preset", maxHintWidth);
+            string hintLine1 = TextLayout.FitToWidth("A/Enter: trigger   X: manage presets   LB/RB: preset", maxHintWidth);
             string hintLine2 = TextLayout.FitToWidth("B/Esc: close", maxHintWidth);
             Utility.drawTextWithShadow(b, hintLine1, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 58), Game1.textColor);
             Utility.drawTextWithShadow(b, hintLine2, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 36), Game1.textColor);

@@ -172,6 +172,12 @@ namespace StardewControllerMenu.Framework
 
             switch (key)
             {
+                // Enter mirrors A - see the same fallback in QuickMenu.receiveKeyPress for why.
+                case Keys.Enter:
+                    if (this.currentlySnappedComponent != null)
+                        this.ToggleRow(this.currentlySnappedComponent.myID);
+                    return;
+
                 case Keys.P:
                     this.Save();
                     return;
@@ -250,7 +256,9 @@ namespace StardewControllerMenu.Framework
                 Utility.drawTextWithShadow(b, counter, Game1.smallFont, new Vector2(this.xPositionOnScreen + this.width - 32 - counterSize.X, statusY), Game1.textColor);
             }
 
-            float maxLabelWidth = this.width - 64 - 16;
+            // A generous safety margin beyond the row's own bounds - reported clipping suggests
+            // Game1.smallFont.MeasureString and the actual drawn width may not agree exactly here.
+            float maxLabelWidth = this.width - 64 - 96;
             for (int i = this.ScrollOffset; i < System.Math.Min(this.ScrollOffset + VisibleRows, this.AllActions.Count); i++)
             {
                 (ModListing mod, ModAction action) = this.AllActions[i];
@@ -266,7 +274,7 @@ namespace StardewControllerMenu.Framework
             }
 
             string cancelHint = this.IsNewPreset ? "B: cancel (deletes this new preset)" : "B: cancel (discards changes)";
-            string hint = TextLayout.FitToWidth($"A: toggle action   Y: save   {cancelHint}", this.width - 64);
+            string hint = TextLayout.FitToWidth($"A/Enter: toggle action   Y: save   {cancelHint}", this.width - 64);
             Utility.drawTextWithShadow(b, hint, Game1.smallFont, new Vector2(this.xPositionOnScreen + 32, this.yPositionOnScreen + this.height - 40), Game1.textColor);
             this.drawMouse(b);
         }

@@ -21,7 +21,7 @@ See [`example-setup/`](example-setup/) for a full, real-world example — a prof
 | Button | Action |
 | --- | --- |
 | D-pad / left stick | Move the selection (scrolls automatically once the list is longer than one screen) |
-| A / click | Trigger the selected entry |
+| A / `Enter` / click | Trigger the selected entry |
 | X / `E` | Open the preset manager (create, edit, duplicate, delete presets) |
 | LB / RB, `[` / `]` | Cycle to the previous/next preset in the current profile |
 | B / Escape | Close the menu |
@@ -32,19 +32,19 @@ Switching preset writes the choice straight back to `config.json`, so it's remem
 
 | Button | Action |
 | --- | --- |
-| A / click | Open the highlighted preset in the action-toggle editor (see below); on "+ New Preset", name a new one first |
+| A / `Enter` / click | Open the highlighted preset in the action-toggle editor (see below); on "+ New Preset", name a new one first |
 | Y | Duplicate the highlighted preset - name the copy, then it opens straight into editing |
-| X | Request deletion of the highlighted preset |
+| X / right-click / `Delete` | Request deletion of the highlighted preset |
 | B | Back to the Quick Menu |
 
-Deleting requires a second, *different* button on purpose: pressing X shows "Delete '\<name\>'? A = confirm. Any other button = cancel" - so a habitual double-tap of the same button can't delete something by accident. If the preset you delete was the active one, the Quick Menu falls back to "All".
+Deleting requires a second, *different* input on purpose: requesting one shows "A/Enter/click confirms deleting '\<name\>' - anything else cancels" - so a habitual repeat of whatever you just pressed can't delete something by accident. If the preset you delete was the active one, the Quick Menu falls back to "All".
 
 **Action-toggle editor** (`Framework/PresetEditMenu.cs`, reached by opening a preset from the manager): lists every individual action across every mod in the active profile with a checkbox, regardless of what's currently in the preset. Presets are built at the action level, not the whole-mod level - a preset can include just one specific action from a mod that has a dozen, without dragging the other eleven along.
 
 | Button | Action |
 | --- | --- |
 | D-pad / left stick | Move the selection (scrolls the same way the Quick Menu does) |
-| A / click | Toggle the highlighted action in/out of this preset |
+| A / `Enter` / click | Toggle the highlighted action in/out of this preset |
 | Y / `P` | Save - writes the current checkboxes back to this preset's name and switches the Quick Menu to it |
 | B | Cancel - discards any toggles made this visit; the preset keeps whatever it was before you opened the editor |
 
@@ -157,7 +157,9 @@ Between rounds of in-game testing, did a full review pass without waiting for an
 
 It also caught two things I'd already half-suspected but hadn't fixed: `KeySender`/`RadialMenu` closed the menu and played the same "select" sound whether or not the keybind was actually sent, so a failure (unparseable keybind, no working injector, every alternative needing a button the platform can't simulate) was completely silent to the player - now shows `Game1.showRedMessage` when nothing was actually triggered. And `WindowsInputInjector` only ever implemented keyboard keys via `SendInput`, not mouse buttons, unlike its Linux/X11 counterpart which already had both - a real cross-platform gap for anyone whose keybind is mouse-bound (e.g. `AutomaticGates`' "Mark Gate as Ignored" in the example-setup data), now fixed with a `MOUSEINPUT`-based implementation mirroring the existing keyboard one.
 
-What a compile check and this playtesting still don't cover: whether `KeySender`'s X11 `XTest` calls actually reach the game window through gamescope's compositor, and whether the radial menu's direction math has its sign conventions right. Both need another real test.
+Yet another round of testing found A doing nothing when pressed on the Quick Menu's "All" preset, and delete still not working in the preset manager - both while touchscreen taps worked fine for the same actions. The likely explanation: this player's own SMAPI mods are triggered via Steam Input mapping their controller to emit keyboard keys rather than raw gamepad button presses (their words, from earlier in this project), and the same is plausibly true for how they interact with menus in general - if a controller button is mapped to send `Enter` rather than a native `Buttons.A` press, `receiveGamePadButton` never sees it at all, which would explain "A does nothing" while a genuine click (`receiveLeftClick`) works fine. Rather than trying to diagnose their exact Steam Input configuration, added `Enter` as a keyboard-equivalent fallback for `A` across all four menus - a hedge that helps regardless of whether the real cause turns out to be this or something else. Also shortened the preset manager's delete hint text (it was long enough to get cut off mid-word, e.g. "X/right-...", by the same `TextLayout.FitToWidth` truncation meant to prevent overflow - split across two lines instead), and widened the safety margin on every row-label width budget after a report of action labels still getting clipped by the box edge in the action-toggle editor specifically - unable to pin down an exact cause without live access, so leaned on a larger margin as a defensive fix rather than a root-cause one.
+
+What a compile check and this playtesting still don't cover: whether `KeySender`'s X11 `XTest` calls actually reach the game window through gamescope's compositor, whether the radial menu's direction math has its sign conventions right, and whether the `Enter`-fallback theory above is actually correct. All need another real test.
 
 ## Building
 
