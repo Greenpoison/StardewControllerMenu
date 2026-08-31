@@ -131,6 +131,8 @@ namespace StardewControllerMenu.Framework
             Utility.drawTextWithShadow(b, "Save", Game1.smallFont, new Vector2(this.SaveButton.bounds.X + 16, this.SaveButton.bounds.Y + 16), Game1.textColor);
             Utility.drawTextWithShadow(b, "Cancel", Game1.smallFont, new Vector2(this.CancelButton.bounds.X + 8, this.CancelButton.bounds.Y + 16), Game1.textColor);
 
+            Utility.drawTextWithShadow(b, "Enter: save   Esc/B: cancel", Game1.smallFont, new Vector2(this.TextBox.X, this.TextBox.Y + 140), Game1.textColor);
+
             this.drawMouse(b);
         }
     }

@@ -14,16 +14,40 @@ See [`example-setup/`](example-setup/) for a full, real-world example — a prof
 
 ### Menu controls
 
+**A design rule that runs through every screen in this mod: B always means "back / cancel without saving," never anything else.** Where a screen also has an on-screen Cancel button (the naming prompt), B does the same thing as clicking it.
+
+**Quick Menu** (the main list):
+
 | Button | Action |
 | --- | --- |
 | D-pad / left stick | Move the selection (scrolls automatically once the list is longer than one screen) |
-| A / click | Trigger the selected entry (or, in edit mode, toggle its mod in/out of the preset being built) |
-| X / `E` | Enter or leave preset-build mode |
-| Y / `P` | Save the preset being built (opens a naming prompt with a Cancel option) - only while in edit mode |
+| A / click | Trigger the selected entry |
+| X / `E` | Open the preset manager (create, edit, duplicate, delete presets) |
 | LB / RB, `[` / `]` | Cycle to the previous/next preset in the current profile |
 | LT / RT, `Page Up` / `Page Down` | Cycle to the previous/next profile |
+| B / Escape | Close the menu |
 
-Switching preset or profile from the menu writes the choice straight back to `config.json`, so it's remembered next session too.
+Switching preset or profile writes the choice straight back to `config.json`, so it's remembered next session too.
+
+**Preset manager** (`Framework/PresetManagerMenu.cs`, opened with X from the Quick Menu): lists every saved preset plus a "+ New Preset" entry.
+
+| Button | Action |
+| --- | --- |
+| A / click | Open the highlighted preset in the mod-toggle editor (see below); on "+ New Preset", name a new one first |
+| Y | Duplicate the highlighted preset - name the copy, then it opens straight into editing |
+| X | Request deletion of the highlighted preset |
+| B | Back to the Quick Menu |
+
+Deleting requires a second, *different* button on purpose: pressing X shows "Delete '\<name\>'? A = confirm. Any other button = cancel" - so a habitual double-tap of the same button can't delete something by accident. If the preset you delete was the active one, the Quick Menu falls back to "All".
+
+**Mod-toggle editor** (`Framework/PresetEditMenu.cs`, reached by opening a preset from the manager): lists every mod in the active profile with a checkbox, regardless of what's currently in the preset.
+
+| Button | Action |
+| --- | --- |
+| D-pad / left stick | Move the selection (scrolls the same way the Quick Menu does) |
+| A / click | Toggle the highlighted mod in/out of this preset |
+| Y / `P` | Save - writes the current checkboxes back to this preset's name and switches the Quick Menu to it |
+| B | Cancel - discards any toggles made this visit; the preset keeps whatever it was before you opened the editor |
 
 ## Profiles
 
@@ -62,7 +86,7 @@ data/
 
 ### Presets
 
-Within a profile, every player has a default "All" view showing every entry. You can also define presets — named, filtered subsets of the full list (e.g. your most-used entries) — stored as individual files under that profile's `presets/` folder. Presets are designed to be creatable while playing, not just by hand-editing JSON before launch.
+Within a profile, every player has a default "All" view showing every entry. You can also define presets — named, filtered subsets of the full list (e.g. your most-used entries) — stored as individual files under that profile's `presets/` folder.
 
 ```json
 {
@@ -71,7 +95,7 @@ Within a profile, every player has a default "All" view showing every entry. You
 }
 ```
 
-Set `ActivePreset` in `config.json` to switch which preset is shown by default, or switch it live from the menu itself (see Menu controls above) - building and saving a new preset without leaving the game is the actual goal here, not just editing JSON between sessions.
+Presets are built entirely in-game, through the preset manager and mod-toggle editor described under Menu controls above: name it, then toggle mods into it from the full list, rather than hand-editing this JSON between sessions. Set `ActivePreset` in `config.json` to change the default at launch, or switch/cycle it live from the Quick Menu.
 
 ## Triggering the actual keybind
 
@@ -115,9 +139,13 @@ A compile check can't catch everything a real playtest does, though. The first a
 - **Opening the menu also opened chat.** Turned out `RightStick` click has a hardcoded vanilla behavior (open chat on a quick press, the emote wheel on a long hold) that reads `GamePadState` directly and bypasses SMAPI's input suppression entirely - not fixable by suppressing the button. Fixed by moving `OpenMenuButton`'s default off any stick click and back to `LeftShoulder + RightShoulder`, now paired with `SuppressActiveKeybinds` so it doesn't also fire another mod bound to the same combo (which *is* a suppressible, SMAPI-mediated conflict, unlike the stick one).
 - **D-pad/stick navigation didn't move the selection at all.** `IClickableMenu.receiveGamePadButton` and `gamePadButtonHeld` are both no-op stubs in the base class - every vanilla menu wires its own snap navigation by calling `applyMovementKey`, and `QuickMenu` never did. Fixed by handling D-pad and left-thumbstick directions explicitly, with throttled auto-repeat while held. Separately, the keyboard shortcut for "save preset" was bound to `S` - the default vanilla move-down key - which unconditionally swallowed that keypress before the base class's own keyboard navigation could see it; moved to `P`.
 - **Couldn't cancel out of naming a new preset.** The game's own `NamingMenu` has no cancel path at all by design (it's built for mandatory naming, like naming a pet) - confirmed by decompiling it. Replaced with `Framework/PresetNamePrompt.cs`, a minimal from-scratch prompt with working Escape/B/Cancel-button handling.
-- **Text spilled outside the menu, and long lists overlapped the control hints.** There was no scrolling and no width limit on labels - fine for a handful of entries, but a real ~27-mod profile produces 60-90 rows. Added a 7-row scrolling window that follows the selection, an "X-Y of Z" counter, and label truncation with an ellipsis so nothing draws past the menu's edge.
+- **Text spilled outside the menu, and long lists overlapped the control hints.** There was no scrolling and no width limit on labels - fine for a handful of entries, but a real ~27-mod profile produces 60-90 rows. Added a scrolling window that follows the selection, an "X-Y of Z" counter, and label truncation with an ellipsis so nothing draws past the menu's edge.
 
-What a compile check and this first playtest still don't cover: whether `KeySender`'s X11 `XTest` calls actually reach the game window through gamescope's compositor, and whether the radial menu's direction math has its sign conventions right. Both need another real test.
+A second pass after that turned up two more: the header itself (`"Quick Menu - Profile: SteamDeck - Preset: All"`) was drawn in Stardew's big decorative `SpriteText` font, which is fine for a short fixed title but overflowed the box once it included variable-length profile/preset names, clipping into the row list below it. Split into a short fixed `SpriteText` title plus a compact `smallFont` status line underneath, with content's vertical start computed from `SpriteText.getHeightOfString` instead of a guessed pixel offset. Separately, gamepad B did nothing at all in the Quick Menu (it only closes vanilla menus by way of a keyboard-only shortcut check in the base class, which doesn't cover controllers) - added explicit B/Escape-to-close handling.
+
+While rebuilding the preset workflow (see Presets above), settled on one rule that now holds across every screen this mod adds: **B always means "back / cancel without saving," and never anything else** - answering a real point of confusion once B was doing different, undocumented things in different screens.
+
+What a compile check and this playtesting still don't cover: whether `KeySender`'s X11 `XTest` calls actually reach the game window through gamescope's compositor, and whether the radial menu's direction math has its sign conventions right. Both need another real test.
 
 ## Building
 

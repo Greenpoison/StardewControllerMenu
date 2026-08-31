@@ -78,6 +78,19 @@ namespace StardewControllerMenu.Framework
             this.Helper.Data.WriteJsonFile($"{ProfilesFolder}/{this.LoadedProfile}/presets/{SanitizeFileName(name)}.json", preset);
         }
 
+        /// <summary>Delete a preset from memory and disk. Returns false if no preset with that name exists.</summary>
+        public bool DeletePreset(string name)
+        {
+            if (!this.Presets.Remove(name))
+                return false;
+
+            string relativePath = $"{ProfilesFolder}/{this.LoadedProfile}/presets/{SanitizeFileName(name)}.json";
+            string fullPath = Path.Combine(this.Helper.DirectoryPath, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(fullPath))
+                File.Delete(fullPath);
+            return true;
+        }
+
         private IEnumerable<string> GetPresetFilePaths(string profileName)
         {
             string presetFolder = $"{ProfilesFolder}/{profileName}/presets";
