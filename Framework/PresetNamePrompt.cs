@@ -33,7 +33,13 @@ namespace StardewControllerMenu.Framework
             this.OnSubmit = onSubmit;
             this.OnCancel = onCancel;
 
-            this.TextBox = new TextBox(null, null, Game1.dialogueFont, Game1.textColor)
+            // Passing null here (as the vanilla NamingMenu itself does) makes TextBox.Draw fall back
+            // to Game1.drawDialogueBox at a fixed offset/padding (X - 32, Y - 112 + 10, Width + 80) -
+            // a look that only works because NamingMenu also uses a matching, much taller Height
+            // (192) built around that specific fallback. With this prompt's much shorter Height, that
+            // fallback box rendered detached from the actual text position entirely. Using the real
+            // small-box texture the game's own chat box uses avoids the fallback path altogether.
+            this.TextBox = new TextBox(Game1.content.Load<Texture2D>("LooseSprites\\chatBox"), null, Game1.dialogueFont, Game1.textColor)
             {
                 X = Game1.uiViewport.Width / 2 - 192,
                 Y = Game1.uiViewport.Height / 2 - 24,

@@ -12,7 +12,9 @@ namespace StardewControllerMenu.Framework
 {
     /// <summary>
     /// Lists every individual action across every mod in the active profile with a checkbox, for
-    /// building one named preset. A toggles an action in/out. Y saves back to that preset name and
+    /// building one named preset. LB toggles an action in/out (A still does too, wired the same way,
+    /// but isn't advertised in the on-screen hint or docs - see the note on that case in
+    /// receiveGamePadButton for why). Y saves back to that preset name and
     /// returns to the quick menu with it active. B discards any changes made this visit - for a
     /// preset that already existed before this screen opened, that means leaving it as it was; for
     /// one just created via "+ New Preset" or Duplicate (<paramref name="isNewPreset"/> in the
@@ -166,7 +168,16 @@ namespace StardewControllerMenu.Framework
 
             switch (button)
             {
+                // On this player's setup A reliably works everywhere else (Quick Menu, preset
+                // manager, Y/B on this same screen) but never registers for toggling a row here -
+                // the same kind of single-button unreliability (likely a Steam Input mapping quirk)
+                // seen earlier with X for delete, just on a button with no keyboard/tap fallback of
+                // its own. LB was free in this menu (no bumper does anything else here), so it's the
+                // real fix - kept as the only one advertised in the hint/docs, since A can't be
+                // relied on. A is left wired too rather than removed outright, since there's no
+                // reason to think it's broken on every setup, just this one.
                 case Buttons.A:
+                case Buttons.LeftShoulder:
                     if (this.currentlySnappedComponent != null)
                         this.ToggleRow(this.currentlySnappedComponent.myID);
                     return;
@@ -405,7 +416,7 @@ namespace StardewControllerMenu.Framework
             }
 
             string cancelHint = this.IsNewPreset ? "B: cancel (deletes this new preset)" : "B: cancel (discards changes)";
-            string hintLine1 = TextLayout.FitToWidth($"A/Enter: toggle action   Y: save   {cancelHint}", this.width - 64);
+            string hintLine1 = TextLayout.FitToWidth($"LB/Enter: toggle action   Y: save   {cancelHint}", this.width - 64);
             string hintLine2 = this.IsProtected
                 ? TextLayout.FitToWidth("Built-in preset used by the radial menu - can't be deleted", this.width - 64)
                 : this.DeletionEnabled
